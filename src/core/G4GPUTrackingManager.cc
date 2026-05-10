@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include "g4gpu/G4GPUHitBuffer.hh"
+#include "g4gpu/MuonStepKernel.hh"
 
 #if defined(G4GPU_HAVE_GEANT4)
 #  include "G4ParticleDefinition.hh"
@@ -72,7 +73,22 @@ void G4GPUTrackingManager::SetBatchSize(int n) {
 
 void G4GPUTrackingManager::LaunchKernels_() {
     const int n = track_buffer_->host().size;
-    LaunchNullStepKernel(track_buffer_->device().status, n);
+    bool has_muon = false;
+    for (int i = 0; i < n; ++i) {
+        const int pdg = track_buffer_->host().pdg[i];
+        has_muon = has_muon || pdg == 13 || pdg == -13;
+    }
+    if (!has_muon) return;
+
+#if defined(G4GPU_WITH_MUON)
+    curandState* d_rng = AllocateRNGStates(n);
+    UploadDefaultMaterials();
+    LaunchInitRNGKernel(d_rng, n, 0x4d554f4eULL);
+    LaunchMuonStepKernel(&track_buffer_->device(), d_rng, nullptr, n);
+    FreeRNGStates(d_rng);
+#else
+    throw std::runtime_error("G4GPU muon tracks require G4GPU_WITH_MUON=ON");
+#endif
 }
 
 void G4GPUTrackingManager::InjectSecondaries_() {
