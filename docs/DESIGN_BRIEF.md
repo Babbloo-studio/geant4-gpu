@@ -3,7 +3,13 @@
 ## What
 
 G4GPU is a general-purpose GPU transport acceleration framework for Geant4.
-It accelerates ALL particle types — muons, hadrons, electrons, gammas — not just EM
+It accelerates EVERY step of Monte Carlo transport on GPU:
+- **Geometry navigation** — voxel 3DDA on CUDA, or hardware-accelerated BVH via NVIDIA RT Cores (OptiX)
+- **Physics sampling** — Bethe-Bloch, Highland MCS, bremsstrahlung, EM shower, elastic scattering
+- **Optical photon transport** — OptiX path tracing (same math as Geant4 optical, at game-engine speed)
+- **Hit accumulation** — atomic GPU hit buffers, injected back to Geant4 SDs
+
+It accelerates ALL particle types — muons, hadrons, electrons, gammas, optical photons — not just EM
 like Celeritas/AdePT. It works without VecGeom and without modifying Geant4 source.
 
 ## Why this is different from Celeritas / AdePT
@@ -13,9 +19,27 @@ like Celeritas/AdePT. It works without VecGeom and without modifying Geant4 sour
 | Particle types | e⁻ e⁺ γ only | e⁻ e⁺ γ only | All types |
 | Muon physics on GPU | ✗ | ✗ | ✓ |
 | Hadronic physics on GPU | ✗ | ✗ | Partial (elastic) |
+| Optical photons on GPU | ✗ | ✗ | ✓ (OptiX path tracing) |
 | VecGeom required | ✓ | ✓ | ✗ |
-| Geometry backend | VecGeom | VecGeom | Voxel or Analytic |
+| Geometry backend | VecGeom | VecGeom | Voxel (CUDA) or RTX (OptiX) |
+| RT Core hardware geo nav | ✗ | ✗ | ✓ (planned) |
 | Geant4 source mod | ✗ | ✗ | Optional |
+
+## The video game insight
+
+Modern game engines trace **billions of rays per second** using RTX hardware.
+Geant4 traces ~1M particle steps per second on CPU.
+The physics is isomorphic — particle transport IS ray tracing through geometry with
+scattering/absorption. The gap exists because Geant4 was designed in 1994 for sequential CPUs.
+
+| Game engine does | Geant4 does | G4GPU fix |
+|---|---|---|
+| SoA memory (all X coords together) | AoS — one G4Track object per particle | TrackSOA buffer |
+| SIMT — 32 threads same instruction | One track at a time, sequential | One thread per track |
+| RT Cores — hardware BVH traversal | G4Navigator — CPU BVH, one ray at a time | OptiX geometry backend |
+| Path tracing optical photons at 60fps | Serial CPU optical transport | OptiX optical kernel |
+| curand — independent RNG per thread | Sequential MT19937, global state | curandState per thread |
+| No virtual dispatch in hot path | G4VProcess::PostStepDoIt() vtable | Flat CUDA device functions |
 
 ## How it works
 

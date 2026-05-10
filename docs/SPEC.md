@@ -11,9 +11,10 @@ geant4-gpu/
 ├── include/g4gpu/
 │   ├── G4GPUTrackingManager.hh   — G4VTrackingManager subclass
 │   ├── G4GPUTrackBuffer.hh       — SoA buffer, host+device
-│   ├── G4GPUGeometry.hh          — geometry backend interface
+│   ├── G4GPUGeometry.hh          — geometry backend interface (voxel + RTX)
 │   ├── G4GPUPhysicsTable.hh      — cross-section tables on GPU
-│   └── G4GPUHitBuffer.hh         — hit accumulation
+│   ├── G4GPUHitBuffer.hh         — hit accumulation
+│   └── G4GPUOptical.hh           — optical photon transport interface
 ├── src/
 │   ├── core/
 │   │   ├── G4GPUTrackingManager.cc
@@ -24,13 +25,20 @@ geant4-gpu/
 │   │   └── NeutronStepKernel.cu  — elastic scattering
 │   ├── geometry/
 │   │   ├── VoxelGeometry.cc      — build voxel grid from G4 geometry
-│   │   └── VoxelGeometry.cu      — 3DDA ray march on GPU
+│   │   ├── VoxelGeometry.cu      — 3DDA ray march on GPU
+│   │   ├── RTXGeometry.cc        — build OptiX BVH from G4 geometry
+│   │   └── RTXGeometry.cu        — hardware RT Core ray queries
+│   ├── optical/
+│   │   ├── OpticalPhotonKernel.cu — OptiX path tracing kernel
+│   │   └── ScintillationSampler.cu — scintillation yield + wavelength
 │   └── hits/
 │       └── G4GPUHitBuffer.cu     — atomic hit accumulation
 ├── tests/
 │   ├── test_muon_range.cc        — muon range in iron vs. Geant4
 │   ├── test_mcs.cc               — multiple scattering angle distribution
-│   └── test_em_shower.cc         — EM shower profile
+│   ├── test_em_shower.cc         — EM shower profile
+│   ├── test_voxel_geometry.cc    — voxel material lookup accuracy
+│   └── test_optical.cc           — optical photon path length distribution
 ├── examples/
 │   └── nnbar/                    — NNBAR cosmic simulation example
 ├── cmake/
@@ -97,17 +105,27 @@ project(G4GPU LANGUAGES CXX CUDA)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CUDA_STANDARD 17)
-set(CMAKE_CUDA_ARCHITECTURES 80)   # A100
+set(CMAKE_CUDA_ARCHITECTURES 80)   # A100; also supports 70 (Volta), 86 (RTX 30xx), 89 (RTX 40xx)
 
 find_package(Geant4 REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 
-option(G4GPU_WITH_EM    "Enable EM shower kernels"      ON)
-option(G4GPU_WITH_MUON  "Enable muon physics kernels"   ON)
-option(G4GPU_WITH_NEUTRON "Enable neutron elastic"      ON)
+option(G4GPU_WITH_EM       "Enable EM shower kernels"        ON)
+option(G4GPU_WITH_MUON     "Enable muon physics kernels"     ON)
+option(G4GPU_WITH_NEUTRON  "Enable neutron elastic"          ON)
+option(G4GPU_WITH_OPTICAL  "Enable OptiX optical transport"  OFF)  # requires OptiX SDK
+option(G4GPU_WITH_RTX      "Enable RTX geometry backend"     OFF)  # requires OptiX SDK + SM >= 7.0
+
+if(G4GPU_WITH_OPTICAL OR G4GPU_WITH_RTX)
+    find_package(OptiX REQUIRED)   # set OptiX_INSTALL_DIR or OPTIX_PATH
+endif()
 
 add_library(G4GPU SHARED ...)
 target_link_libraries(G4GPU PUBLIC ${Geant4_LIBRARIES} CUDA::cudart CUDA::curand)
+if(G4GPU_WITH_OPTICAL OR G4GPU_WITH_RTX)
+    target_link_libraries(G4GPU PUBLIC ${OptiX_LIBRARIES})
+    target_include_directories(G4GPU PRIVATE ${OptiX_INCLUDE_DIRS})
+endif()
 target_include_directories(G4GPU PUBLIC include)
 ```
 
@@ -182,6 +200,114 @@ __device__ float DistanceToNextVoxelBoundary(
 }
 ```
 
+## Phase 3: RTX Geometry Backend (RTXGeometry.cu)
+
+Use NVIDIA RT Cores (OptiX 8+) for hardware-accelerated geometry navigation.
+This is the same hardware that game engines use for real-time ray tracing.
+**No HEP experiment has used RT Cores for geometry navigation before — this is novel.**
+
+### Why RT Cores for HEP
+
+RT Cores implement hardware BVH (Bounding Volume Hierarchy) traversal at ~10 Giga-rays/sec.
+`G4Navigator::LocateGlobalPointAndSetup()` does the same thing in software, one track at a time.
+The RT Core query — given a ray (origin, direction), find the first geometry boundary —
+is exactly the step-limiting geometry query in `G4SteppingManager`.
+
+### Build BVH from Geant4 geometry (CPU, startup)
+
+```cpp
+void RTXGeometry::Build(G4VPhysicalVolume* world) {
+    // Walk G4 geometry tree → collect all solid surfaces as triangle meshes
+    // G4TessellatedSolid → direct; G4Box/G4Tubs → approximate with triangles
+    // Create OptixBuildInput per logical volume
+    // optixAccelBuild() → GAS (Geometry Acceleration Structure) per solid
+    // optixAccelBuild() → IAS (Instance Acceleration Structure) for world
+    // Record volume_id and material_id in SBT (Shader Binding Table) hit records
+}
+```
+
+### GPU ray query (replaces G4Navigator)
+
+```cuda
+// In step kernel: find distance to next boundary
+__device__ float DistanceToNextBoundary_RTX(
+    float3 pos, float3 dir,
+    OptixTraversableHandle bvh,
+    int& next_volume_idx          // output: volume after crossing
+) {
+    OptixRay ray = {pos, 0.0f, dir, 1e9f};
+    OptixPayload payload;
+    optixTrace(bvh, ray.origin, ray.direction,
+               ray.tmin, ray.tmax, 0.0f,
+               OptixVisibilityMask(0xFF), OPTIX_RAY_FLAG_NONE,
+               0, 1, 0,
+               payload.volume_idx, payload.distance);
+    next_volume_idx = payload.volume_idx;
+    return payload.distance;
+}
+```
+
+The `__closesthit__` program runs in the SBT and writes `volume_id` + `t` to payload.
+The result is: distance to next volume boundary + which volume that is — exactly what
+G4Navigator provides, delivered by hardware RT Cores.
+
+### Accuracy vs. voxel
+
+RTX gives **exact** geometry boundaries (triangle mesh precision), not voxel-approximate.
+Trade-off: BVH build is heavier at startup; ray queries are faster and exact.
+Recommended: start with voxel (Phase 2), add RTX backend for precision mode.
+
+---
+
+## Phase 4: Optical Photon Transport (OpticalPhotonKernel.cu)
+
+Optical photons in Geant4 are the slowest component: scintillation light + Cherenkov
+produce thousands of photons per event, transported one at a time on CPU.
+This is literally **path tracing** — the same algorithm used for realistic lighting in games.
+
+### Physics mapping to OptiX
+
+| Geant4 optical process | OptiX equivalent |
+|---|---|
+| `G4OpBoundaryProcess` — reflection/refraction at surfaces | `__closesthit__` program: Snell's law + Fresnel equations |
+| `G4OpAbsorption` — bulk absorption | `__miss__` program: Beer-Lambert exponential sampling |
+| `G4OpRayleigh` — Rayleigh scattering | Direction perturbation in `__closesthit__` |
+| Cherenkov angle — cone of photons | Generate photon directions on CPU, launch as OptiX batch |
+| Scintillation yield — photons per MeV | Sample from yield table, generate initial positions |
+| PMT hit detection | `__closesthit__` program on PMT surface → write to hit buffer |
+
+### Optical kernel design
+
+```cuda
+// Each OptiX ray = one optical photon
+// __raygen__ program: read photon from buffer, launch ray
+// __closesthit__ program: determine surface interaction
+//     - compute Fresnel coefficients (n1, n2 from material table)
+//     - sample: reflected or transmitted (Russian roulette)
+//     - if absorbed: write hit to PMT buffer (atomicAdd)
+//     - if scattered (Rayleigh): sample new direction
+// __miss__ program: photon escaped detector → mark killed
+// Bulk absorption: exponential sampling of mean free path per material
+
+__global__ void OpticalPhotonKernel(
+    PhotonSOA photons,          // SoA: pos, dir, wavelength, polarization
+    OptixTraversableHandle bvh,
+    MaterialOpticalData* mats,  // refractive index, absorption length per material + wavelength
+    PMTHitBuffer* pmt_hits,
+    curandState* rng,
+    int n_photons
+);
+```
+
+### Expected speedup
+
+NNBAR has 6 scintillator bars + PMTs. One cosmic muon event produces ~50k optical photons.
+CPU: ~50k photons × ~100 bounces × ~1 μs/bounce = 5 seconds per event.
+GPU: 50k OptiX rays, RT Cores at ~10 Giga-rays/sec = ~0.5 ms.
+**Theoretical speedup: ~10,000×** on the optical component alone.
+
+---
+
 ## Validation tests (build alongside each phase)
 
 ### test_muon_range.cc
@@ -205,10 +331,52 @@ Focus on Phase 0 only:
 1. `CMakeLists.txt` — working cmake that finds Geant4 + CUDA
 2. `include/g4gpu/G4GPUTrackingManager.hh` — full class declaration
 3. `include/g4gpu/G4GPUTrackBuffer.hh` — TrackSOA struct + Buffer class
-4. `src/core/G4GPUTrackingManager.cc` — HandOverOneTrack + FlushEvent skeleton
+4. `include/g4gpu/G4GPUGeometry.hh` — abstract base class for geometry backends
+5. `include/g4gpu/G4GPUHitBuffer.hh` — HitSOA struct
+6. `src/core/G4GPUTrackingManager.cc` — HandOverOneTrack + FlushEvent skeleton
    (kernels stubbed, just buffer management + device transfer working)
-5. `src/core/G4GPUTrackBuffer.cc` — pinned alloc + AoS→SoA conversion
-6. `README.md` — project description, build instructions, status
+7. `src/core/G4GPUTrackBuffer.cc` — pinned alloc + AoS→SoA conversion
+8. `src/geometry/VoxelGeometry.cc` — stub (CPU build/fill only, no CUDA yet)
+9. `src/hits/G4GPUHitBuffer.cu` — stub kernel: `__global__ void NullStepKernel`
+   that memsets status to 1 (stopped) — proves H2D/D2H transfer works
+10. `README.md` — project description, build instructions, status
 
-Syntax check: `cmake -B build -DCMAKE_CUDA_COMPILER=nvcc .` should succeed.
-No CUDA device needed to build the CPU parts with stubs.
+### Build verification protocol
+
+The codex implementation MUST pass all three checks:
+
+**Check 1 — cmake configure:**
+```bash
+cmake -B build -DCMAKE_CUDA_COMPILER=nvcc \
+      -DGeant4_DIR=<path> \
+      -DG4GPU_WITH_OPTICAL=OFF -DG4GPU_WITH_RTX=OFF \
+      .
+# Must succeed with no errors
+```
+
+**Check 2 — compile (no GPU needed):**
+```bash
+cmake --build build -j$(nproc)
+# Must produce libG4GPU.so with no warnings treated as errors
+```
+
+**Check 3 — runtime stub test (GPU required, run on LUNARC gpua40):**
+```bash
+./build/tests/test_stub
+# Creates 1024-track buffer, H2D transfer, launches NullStepKernel,
+# D2H transfer, verifies all status==1. Prints: PASS or FAIL.
+```
+
+Geant4 install for codex: `/projects/hep/fs10/shared/nnbar/billy/packages/hibeam_env/`
+CUDA architectures target: `80` (A100), also enable `75` for local RTX cards.
+
+### CUDA device compatibility
+
+The framework targets SM 7.0+ (Volta and later):
+- SM 7.0: V100 (LUNARC old)
+- SM 8.0: A100 (LUNARC primary — `gpua100` partition)
+- SM 8.6: RTX 3090/A6000 (local dev)
+- SM 8.9: RTX 4090 (local dev)
+
+Set `CMAKE_CUDA_ARCHITECTURES=80;86;89` for broad compatibility.
+OptiX/RTX backend requires SM 7.0+ and OptiX SDK 8.0+.
