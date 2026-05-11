@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -16,6 +17,7 @@
 #include "StandInGeometry.hh"
 #include "g4gpu/BranchlessSolids.hh"
 #include "g4gpu/CrossSectionInterpolator.hh"
+#include "g4gpu/NavigationPrefetch.hh"
 #include "g4gpu/Track.hh"
 
 namespace g4gpu::benchmarks {
@@ -206,6 +208,7 @@ inline std::vector<BenchmarkRow> GenerateRows(const BenchmarkEventSpec& event,
     constexpr int kXSQueriesPerEvent = 128;
     constexpr int kSolidQueriesPerEvent = 192;
     constexpr int kTrackQueriesPerEvent = 128;
+    constexpr int kNavigationQueriesPerEvent = 128;
     const auto& geometry = GeometryById(event.geometry_id);
     std::vector<BenchmarkRow> rows;
     rows.reserve(static_cast<std::size_t>(events));
@@ -263,6 +266,46 @@ inline std::vector<BenchmarkRow> GenerateRows(const BenchmarkEventSpec& event,
     }
     const double track_mean = track_count > 0 ? track_sum / static_cast<double>(track_count) : 0.0;
 
+    constexpr int kNavNx = 128;
+    constexpr int kNavNy = 128;
+    constexpr int kNavNz = 64;
+    std::vector<std::uint8_t> nav_material(static_cast<std::size_t>(kNavNx * kNavNy * kNavNz));
+    std::vector<std::uint16_t> nav_volume(nav_material.size());
+    for (int iz = 0; iz < kNavNz; ++iz) {
+        for (int iy = 0; iy < kNavNy; ++iy) {
+            for (int ix = 0; ix < kNavNx; ++ix) {
+                const auto flat = static_cast<std::size_t>((iz * kNavNy + iy) * kNavNx + ix);
+                nav_material[flat] = static_cast<std::uint8_t>(
+                    (ix * 3 + iy * 5 + iz * 7 + static_cast<int>(event.seed)) & 0x3f);
+                nav_volume[flat] = 1;
+            }
+        }
+    }
+    const g4gpu::NavigationGrid nav_grid{
+        kNavNx, kNavNy, kNavNz, nav_material.data(), nav_volume.data()};
+    const std::size_t nav_count =
+        static_cast<std::size_t>(events) * kNavigationQueriesPerEvent;
+    std::vector<g4gpu::NavigationRay> nav_rays(nav_count);
+    for (std::size_t i = 0; i < nav_count; ++i) {
+        const double phase = static_cast<double>((i * 22695477ULL + event.seed) & 0xffffu);
+        nav_rays[i] = {
+            1.5f + static_cast<float>(std::fmod(phase * 0.01953125, kNavNx - 3.0)),
+            1.5f + static_cast<float>(std::fmod(phase * 0.013671875 + i, kNavNy - 3.0)),
+            1.5f + static_cast<float>(std::fmod(phase * 0.0078125 + 0.5 * i, 42.0)),
+            0.17f + 0.003f * static_cast<float>(i % 17),
+            -0.11f + 0.002f * static_cast<float>(i % 13),
+            0.31f + 0.002f * static_cast<float>(i % 11),
+        };
+    }
+    std::vector<int> nav_touchables(nav_count);
+    g4gpu::WalkTouchableBatch(nav_grid, nav_rays.data(), nav_touchables.data(),
+                              nav_touchables.size(), 192);
+    double nav_mean = 0.0;
+    for (const int value : nav_touchables) {
+        nav_mean += static_cast<double>(value & 0xffff);
+    }
+    nav_mean = nav_touchables.empty() ? 0.0 : nav_mean / static_cast<double>(nav_touchables.size());
+
     const double density_scale = std::max(0.2, geometry.density_g_cm3 / 2.0);
     for (int i = 0; i < events; ++i) {
         double xs_mean = 0.0;
@@ -291,8 +334,9 @@ inline std::vector<BenchmarkRow> GenerateRows(const BenchmarkEventSpec& event,
         const double xs_scale = 1.0 + 1.0e-4 * (xs_mean - 0.75);
         const double solid_scale = 1.0 + 1.0e-10 * (solid_mean - 25.0);
         const double track_scale = 1.0 + 1.0e-12 * (track_mean - 25.0);
+        const double nav_scale = 1.0 + 1.0e-15 * (nav_mean - 25000.0);
         const double deposited = std::max(
-            0.0, event.deposited_energy_mev * density_scale * xs_scale * solid_scale * track_scale *
+            0.0, event.deposited_energy_mev * density_scale * xs_scale * solid_scale * track_scale * nav_scale *
                      (1.0 + 0.04 * unit_normal(rng)));
         const int multiplicity =
             std::max(1, static_cast<int>(std::llround(1.0 + hits / 35.0 +

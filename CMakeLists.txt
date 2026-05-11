@@ -52,11 +52,13 @@ add_library(G4GPU SHARED
   src/hits/G4GPUHitBuffer.cu
   src/physics/CrossSectionInterpolator.cc
   src/geometry/branchless_solids.cc
+  src/geometry/navigation_prefetch.cc
 )
 set_source_files_properties(
   src/physics/CrossSectionInterpolator.cc
   src/geometry/branchless_solids.cc
   src/core/Track.cc
+  src/geometry/navigation_prefetch.cc
   PROPERTIES COMPILE_OPTIONS "-O3"
 )
 
@@ -125,6 +127,12 @@ add_executable(test_track_alignment tests/test_track_alignment.cc)
 target_link_libraries(test_track_alignment PRIVATE G4GPU)
 set_target_properties(test_track_alignment PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
 add_test(NAME g4gpu_track_alignment COMMAND ${CMAKE_BINARY_DIR}/tests/test_track_alignment)
+
+
+add_executable(test_navigation_prefetch tests/test_navigation_prefetch.cc)
+target_link_libraries(test_navigation_prefetch PRIVATE G4GPU)
+set_target_properties(test_navigation_prefetch PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
+add_test(NAME g4gpu_navigation_prefetch COMMAND ${CMAKE_BINARY_DIR}/tests/test_navigation_prefetch)
 
 add_executable(test_benchmark_manifest tests/test_benchmark_manifest.cc)
 target_link_libraries(test_benchmark_manifest PRIVATE G4GPU)

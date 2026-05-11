@@ -1,0 +1,345 @@
+{
+  "backend_probe": "PASS: navigation prefetch backend=touchable-prefetch, rays=512",
+  "benchmarks": {
+    "beam_neutron": {
+      "all_disabled_reference": {
+        "median_ns": 1146027316,
+        "times_ns": [
+          1146027316,
+          1150708853,
+          1138694800,
+          1144593909,
+          1144665903,
+          1146452435,
+          1149929657
+        ]
+      },
+      "cumulative_speedup": 2.1645342197044566,
+      "default": {
+        "median_ns": 529456779,
+        "times_ns": [
+          531112445,
+          529456779,
+          531617876,
+          530972301,
+          529243278,
+          527982075,
+          527953721
+        ]
+      },
+      "navigation_reference": {
+        "median_ns": 1128362292,
+        "times_ns": [
+          1126604064,
+          1138968224,
+          1153436032,
+          1121294104,
+          1128362292,
+          1124491680,
+          1164613260
+        ]
+      },
+      "navigation_speedup": 2.1311697890263486
+    },
+    "cosmic_shower": {
+      "all_disabled_reference": {
+        "median_ns": 1146862289,
+        "times_ns": [
+          1143121612,
+          1158087046,
+          1146862289,
+          1144685794,
+          1165379877,
+          1152452980,
+          1144981938
+        ]
+      },
+      "cumulative_speedup": 2.1584677858877406,
+      "default": {
+        "median_ns": 531331668,
+        "times_ns": [
+          534990811,
+          534156642,
+          530093698,
+          532993063,
+          531331668,
+          529778165,
+          530018076
+        ]
+      },
+      "navigation_reference": {
+        "median_ns": 1134303031,
+        "times_ns": [
+          1138620573,
+          1129394647,
+          1126034867,
+          1145406460,
+          1131952849,
+          1138699693,
+          1134303031
+        ]
+      },
+      "navigation_speedup": 2.134830463370762
+    },
+    "gamma_100mev": {
+      "all_disabled_reference": {
+        "median_ns": 1145566972,
+        "times_ns": [
+          1153812994,
+          1153487051,
+          1141024716,
+          1145566972,
+          1137864177,
+          1146548870,
+          1142487909
+        ]
+      },
+      "cumulative_speedup": 2.1464760620415273,
+      "default": {
+        "median_ns": 533696598,
+        "times_ns": [
+          537982676,
+          528685290,
+          527673447,
+          533696598,
+          531017909,
+          538436355,
+          535004127
+        ]
+      },
+      "navigation_reference": {
+        "median_ns": 1130793729,
+        "times_ns": [
+          1133917345,
+          1125993017,
+          1125957651,
+          1130793729,
+          1157781601,
+          1142843417,
+          1128204548
+        ]
+      },
+      "navigation_speedup": 2.118795085517858
+    },
+    "muon_10gev": {
+      "all_disabled_reference": {
+        "median_ns": 1145034270,
+        "times_ns": [
+          1142501085,
+          1150910414,
+          1143180092,
+          1145034270,
+          1150294065,
+          1156711709,
+          1138562845
+        ]
+      },
+      "cumulative_speedup": 2.1312169821901015,
+      "default": {
+        "median_ns": 537267805,
+        "times_ns": [
+          532627606,
+          537921054,
+          540490258,
+          528817648,
+          531464337,
+          537267805,
+          540805901
+        ]
+      },
+      "navigation_reference": {
+        "median_ns": 1140115917,
+        "times_ns": [
+          1142726869,
+          1137265384,
+          1145339204,
+          1136386651,
+          1140115917,
+          1148106920,
+          1138690435
+        ]
+      },
+      "navigation_speedup": 2.122062603397574
+    },
+    "nbar_carbon": {
+      "all_disabled_reference": {
+        "median_ns": 1143742349,
+        "times_ns": [
+          1144411148,
+          1133041638,
+          1140042930,
+          1155276709,
+          1127435912,
+          1146022099,
+          1143742349
+        ]
+      },
+      "cumulative_speedup": 2.1526192812811322,
+      "default": {
+        "median_ns": 531325887,
+        "times_ns": [
+          528587435,
+          530661637,
+          531325887,
+          535170499,
+          531664274,
+          530650526,
+          531395237
+        ]
+      },
+      "navigation_reference": {
+        "median_ns": 1140049261,
+        "times_ns": [
+          1143771785,
+          1127858386,
+          1145975521,
+          1138152844,
+          1135387782,
+          1140575561,
+          1140049261
+        ]
+      },
+      "navigation_speedup": 2.1456685791031296
+    },
+    "optical_scintillator": {
+      "all_disabled_reference": {
+        "median_ns": 1146874389,
+        "times_ns": [
+          1137439629,
+          1156448621,
+          1146649456,
+          1141084727,
+          1146874389,
+          1158452731,
+          1157409948
+        ]
+      },
+      "cumulative_speedup": 2.1614998887110843,
+      "default": {
+        "median_ns": 530591926,
+        "times_ns": [
+          540447787,
+          528586873,
+          529771111,
+          531703667,
+          530591926,
+          531303774,
+          529371339
+        ]
+      },
+      "navigation_reference": {
+        "median_ns": 1133344735,
+        "times_ns": [
+          1125157673,
+          1142407385,
+          1130169091,
+          1146340063,
+          1133344735,
+          1132660468,
+          1147463667
+        ]
+      },
+      "navigation_speedup": 2.1360007181865788
+    }
+  },
+  "build_dir": "/projects/hep/fs10/shared/nnbar/billy/geant4-gpu/build_phase5d4",
+  "cumulative_reference_mode": "G4GPU_XS_DISABLE_SIMD=1 G4GPU_SOLIDS_DISABLE_BRANCHLESS=1 G4GPU_TRACK_DISABLE_ALIGNED=1 G4GPU_NAV_DISABLE_PREFETCH=1",
+  "date": "2026-05-11T20:23:23+0200",
+  "default_mode": "all L0 optimizations enabled",
+  "events": 5000,
+  "lane": "g4gpu-phase5",
+  "navigation_reference_mode": "G4GPU_NAV_DISABLE_PREFETCH=1",
+  "repetitions": 7,
+  "source_head_before_commit": "55e11f93d17a30e0dcdc910671581f743b7c43bd",
+  "subphase": "5d.4 navigation touchable prefetch",
+  "tmp_dir": "/projects/hep/fs10/shared/codex-tooling/per-user/scyiu/run/tmp/nnbar-g4gpu-lunarc/g4gpu_phase5d4_ufa2f4sb",
+  "validation_cumulative": {
+    "beam_neutron": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "cosmic_shower": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "gamma_100mev": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "muon_10gev": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "nbar_carbon": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "optical_scintillator": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    }
+  },
+  "validation_events": 1000,
+  "validation_navigation": {
+    "beam_neutron": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "cosmic_shower": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "gamma_100mev": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "muon_10gev": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "nbar_carbon": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "optical_scintillator": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    }
+  }
+}
