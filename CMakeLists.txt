@@ -45,6 +45,7 @@ add_library(G4GPU SHARED
   src/core/G4GPUTrackBuffer.cc
   src/core/G4GPUTrackingManager.cc
   src/geometry/VoxelGeometry.cc
+  src/geometry/VoxelGeometry.cu
   src/hits/G4GPUHitBuffer.cu
 )
 
@@ -79,6 +80,11 @@ add_executable(test_stub tests/test_stub.cc)
 target_link_libraries(test_stub PRIVATE G4GPU)
 set_target_properties(test_stub PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
 add_test(NAME g4gpu_stub COMMAND ${CMAKE_BINARY_DIR}/tests/test_stub)
+
+add_executable(test_voxel_geometry tests/test_voxel_geometry.cc)
+target_link_libraries(test_voxel_geometry PRIVATE G4GPU)
+set_target_properties(test_voxel_geometry PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
+add_test(NAME g4gpu_voxel_geometry COMMAND ${CMAKE_BINARY_DIR}/tests/test_voxel_geometry)
 
 if(G4GPU_WITH_MUON)
   add_executable(test_muon_range tests/test_muon_range.cc)

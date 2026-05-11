@@ -1,5 +1,6 @@
 #define G4GPU_DEFINE_MATERIAL_CONSTANTS
 #include "g4gpu/MuonStepKernel.hh"
+#include "g4gpu/VoxelGeometry.hh"
 
 #include <cstddef>
 #include <cmath>
@@ -88,6 +89,15 @@ void UploadDefaultMaterials(cudaStream_t stream) {
               "cudaMemcpyToSymbolAsync d_materials");
 }
 
+void UploadVoxelMaterials(const MaterialData* materials, int count, cudaStream_t stream) {
+    MaterialData padded[64]{};
+    const int n = count < 64 ? count : 64;
+    for (int i = 0; i < n; ++i) padded[i] = materials[i];
+    CheckCuda(cudaMemcpyToSymbolAsync(d_materials, padded, sizeof(padded),
+                                      0, cudaMemcpyHostToDevice, stream),
+              "cudaMemcpyToSymbolAsync d_materials");
+}
+
 __device__ float BetheBloch(float ekin, float mass, const MaterialData& mat) {
     ekin = fmaxf(ekin, 1.0e-3f);
     const float gamma = 1.0f + ekin / mass;
@@ -136,11 +146,22 @@ __global__ void MuonStepKernel(TrackSOA tracks, curandState* rng,
     const bool stochastic = rng != nullptr;
     if (stochastic) local_rng = rng[i];
 
+    float3 dir = Normalize(Vec(tracks.dx[i], tracks.dy[i], tracks.dz[i]));
+    int next_mat_id = tracks.material_idx[i];
+    float geo_limit = GEO_LIMIT_MM;
+    if (ActiveVoxelGridAvailable()) {
+        geo_limit = DistanceToNextVoxelBoundary(
+            Vec(tracks.x[i], tracks.y[i], tracks.z[i]), dir,
+            d_active_voxel_grid, next_mat_id);
+        if (!isfinite(geo_limit) || geo_limit <= 0.0f) geo_limit = GEO_LIMIT_MM;
+    }
+
     const MaterialData mat = LoadMaterial(materials, tracks.material_idx[i]);
     const float u = stochastic ? fmaxf(curand_uniform(&local_rng), 1.0e-6f) : 0.5f;
     const float brem_limit = -BREM_MFP_MM * logf(u);
-    float step = fminf(GEO_LIMIT_MM, brem_limit);
-    if (step <= 0.0f) step = GEO_LIMIT_MM;
+    float step = fminf(geo_limit, brem_limit);
+    if (step <= 0.0f) step = geo_limit;
+    const bool reaches_geometry_boundary = geo_limit <= brem_limit;
 
     const float ekin0 = fmaxf(0.0f, tracks.ekin[i]);
     const float total0 = ekin0 + MUON_MASS;
@@ -160,7 +181,6 @@ __global__ void MuonStepKernel(TrackSOA tracks, curandState* rng,
         status = 1;
     }
 
-    float3 dir = Normalize(Vec(tracks.dx[i], tracks.dy[i], tracks.dz[i]));
     const float theta0 = HighlandTheta0(p0, beta0, actual_step / mat.X0);
     if (theta0 > 0.0f && stochastic) {
         float3 u_axis;
@@ -181,6 +201,9 @@ __global__ void MuonStepKernel(TrackSOA tracks, curandState* rng,
     tracks.dy[i] = dir.y;
     tracks.dz[i] = dir.z;
     tracks.ekin[i] = ekin1;
+    if (status == 0 && reaches_geometry_boundary && next_mat_id >= 0) {
+        tracks.material_idx[i] = next_mat_id;
+    }
     tracks.status[i] = status;
     if (stochastic) rng[i] = local_rng;
 }
