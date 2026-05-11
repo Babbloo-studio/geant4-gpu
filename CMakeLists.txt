@@ -67,6 +67,11 @@ elseif(G4GPU_WITH_CURAND)
   target_link_libraries(G4GPU PRIVATE CUDA::curand)
 endif()
 
+if(G4GPU_WITH_NEUTRON)
+  target_compile_definitions(G4GPU PUBLIC G4GPU_WITH_NEUTRON=1)
+  target_sources(G4GPU PRIVATE src/physics/NeutronStepKernel.cu)
+endif()
+
 if(G4GPU_WITH_OPTICAL OR G4GPU_WITH_RTX)
   target_link_libraries(G4GPU PUBLIC ${OptiX_LIBRARIES})
   target_include_directories(G4GPU PRIVATE ${OptiX_INCLUDE_DIRS})
@@ -100,6 +105,20 @@ if(G4GPU_WITH_MUON)
   target_link_libraries(test_mcs PRIVATE G4GPU)
   set_target_properties(test_mcs PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
   add_test(NAME g4gpu_mcs COMMAND ${CMAKE_BINARY_DIR}/tests/test_mcs)
+endif()
+
+if(G4GPU_WITH_NEUTRON)
+  add_executable(g4gpu_neutron_elastic_kinematics
+    tests/test_neutron_elastic_kinematics.cu
+  )
+  target_link_libraries(g4gpu_neutron_elastic_kinematics PRIVATE G4GPU)
+  set_target_properties(g4gpu_neutron_elastic_kinematics
+    PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+  )
+  add_test(
+    NAME g4gpu_neutron_elastic_kinematics
+    COMMAND ${CMAKE_BINARY_DIR}/tests/g4gpu_neutron_elastic_kinematics
+  )
 endif()
 
 add_executable(test_benchmark_manifest tests/test_benchmark_manifest.cc)
