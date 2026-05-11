@@ -16,7 +16,8 @@ option(G4GPU_WITH_EM      "Enable EM shower kernels"       ON)
 option(G4GPU_WITH_MUON    "Enable muon physics kernels"    ON)
 option(G4GPU_WITH_NEUTRON "Enable neutron elastic kernels" ON)
 option(G4GPU_WITH_CURAND  "Link cuRAND for stochastic physics kernels" OFF)
-option(G4GPU_WITH_OPTICAL "Enable OptiX optical transport" OFF)
+option(G4GPU_WITH_OPTICKS "Enable Opticks optical photon backend" OFF)
+option(G4GPU_WITH_OPTICAL "Legacy alias for Opticks optical transport" OFF)
 option(G4GPU_WITH_RTX     "Enable RTX geometry backend"    OFF)
 set(G4GPU_BENCHMARK_PYTHON "/projects/hep/fs10/shared/nnbar/billy/packages/hibeam_env/bin/python"
     CACHE STRING "Python interpreter with pyarrow for benchmark Parquet output")
@@ -39,8 +40,56 @@ if(DEFINED Geant4_USE_FILE)
 endif()
 find_package(CUDAToolkit REQUIRED)
 
-if(G4GPU_WITH_OPTICAL OR G4GPU_WITH_RTX)
-  find_package(OptiX REQUIRED)
+if(G4GPU_WITH_OPTICAL AND NOT G4GPU_WITH_OPTICKS)
+  message(STATUS "G4GPU_WITH_OPTICAL is a legacy alias; enabling G4GPU_WITH_OPTICKS")
+  set(G4GPU_WITH_OPTICKS ON CACHE BOOL "Enable Opticks optical photon backend" FORCE)
+endif()
+
+if(G4GPU_WITH_OPTICKS OR G4GPU_WITH_RTX)
+  find_path(OptiX_INCLUDE_DIRS
+    NAMES optix.h
+    HINTS
+      $ENV{OptiX_INSTALL_DIR}
+      $ENV{OPTIX_PATH}
+      $ENV{OPTIX_HOME}
+      /projects/hep/fs10/shared/nnbar/billy/packages/optix-9.0
+    PATH_SUFFIXES include
+  )
+  if(NOT OptiX_INCLUDE_DIRS)
+    message(FATAL_ERROR
+      "G4GPU_WITH_OPTICKS/G4GPU_WITH_RTX requires NVIDIA OptiX SDK headers "
+      "(optix.h). Install the SDK or configure with -DG4GPU_WITH_OPTICKS=OFF "
+      "and -DG4GPU_WITH_RTX=OFF.")
+  endif()
+  set(OptiX_LIBRARIES "")
+endif()
+
+if(G4GPU_WITH_OPTICKS)
+  find_package(Opticks QUIET)
+  if(NOT Opticks_FOUND)
+    find_path(G4GPU_OPTICKS_INCLUDE_DIR
+      NAMES G4CXOpticks.hh
+      HINTS
+        $ENV{OPTICKS_HOME}
+        $ENV{OPTICKS_PREFIX}
+        /projects/hep/fs10/shared/nnbar/billy/packages/opticks
+      PATH_SUFFIXES include include/G4CX include/g4cx
+    )
+    find_library(G4GPU_OPTICKS_LIBRARY
+      NAMES G4CX Opticks G4CXOpticks
+      HINTS
+        $ENV{OPTICKS_HOME}
+        $ENV{OPTICKS_PREFIX}
+        /projects/hep/fs10/shared/nnbar/billy/packages/opticks
+      PATH_SUFFIXES lib lib64
+    )
+    if(NOT G4GPU_OPTICKS_INCLUDE_DIR OR NOT G4GPU_OPTICKS_LIBRARY)
+      message(FATAL_ERROR
+        "G4GPU_WITH_OPTICKS=ON requires Opticks headers and libraries "
+        "(for example G4CXOpticks.hh plus libG4CX/libOpticks). Install "
+        "Opticks/OptiX or configure with -DG4GPU_WITH_OPTICKS=OFF.")
+    endif()
+  endif()
 endif()
 
 add_library(G4GPU SHARED
@@ -53,6 +102,7 @@ add_library(G4GPU SHARED
   src/physics/CrossSectionInterpolator.cc
   src/geometry/branchless_solids.cc
   src/geometry/navigation_prefetch.cc
+  src/optical/OpticksOpticalBackend.cc
 )
 set_source_files_properties(
   src/physics/CrossSectionInterpolator.cc
@@ -78,7 +128,20 @@ elseif(G4GPU_WITH_CURAND)
   target_link_libraries(G4GPU PRIVATE CUDA::curand)
 endif()
 
-if(G4GPU_WITH_OPTICAL OR G4GPU_WITH_RTX)
+if(G4GPU_WITH_OPTICKS)
+  target_compile_definitions(G4GPU PUBLIC G4GPU_WITH_OPTICKS=1)
+  if(TARGET Opticks::Opticks)
+    target_link_libraries(G4GPU PUBLIC Opticks::Opticks)
+  elseif(Opticks_FOUND)
+    target_include_directories(G4GPU PRIVATE ${Opticks_INCLUDE_DIRS})
+    target_link_libraries(G4GPU PUBLIC ${Opticks_LIBRARIES})
+  else()
+    target_include_directories(G4GPU PRIVATE ${G4GPU_OPTICKS_INCLUDE_DIR})
+    target_link_libraries(G4GPU PUBLIC ${G4GPU_OPTICKS_LIBRARY})
+  endif()
+endif()
+
+if(G4GPU_WITH_OPTICKS OR G4GPU_WITH_RTX)
   target_link_libraries(G4GPU PUBLIC ${OptiX_LIBRARIES})
   target_include_directories(G4GPU PRIVATE ${OptiX_INCLUDE_DIRS})
 endif()
@@ -128,6 +191,11 @@ target_link_libraries(test_track_alignment PRIVATE G4GPU)
 set_target_properties(test_track_alignment PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
 add_test(NAME g4gpu_track_alignment COMMAND ${CMAKE_BINARY_DIR}/tests/test_track_alignment)
 
+
+add_executable(test_opticks_backend tests/test_opticks_backend.cc)
+target_link_libraries(test_opticks_backend PRIVATE G4GPU)
+set_target_properties(test_opticks_backend PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
+add_test(NAME g4gpu_opticks_backend COMMAND ${CMAKE_BINARY_DIR}/tests/test_opticks_backend)
 
 add_executable(test_navigation_prefetch tests/test_navigation_prefetch.cc)
 target_link_libraries(test_navigation_prefetch PRIVATE G4GPU)
