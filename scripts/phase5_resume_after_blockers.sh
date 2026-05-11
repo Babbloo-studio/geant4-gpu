@@ -54,7 +54,9 @@ fi
 
 section "publication fallback checksums"
 if [[ -f "$SHA_FILE" ]]; then
-  if sha256sum -c "$SHA_FILE"; then
+  SHA_DIR="$(cd "$(dirname "$SHA_FILE")" && pwd)"
+  SHA_BASE="$(basename "$SHA_FILE")"
+  if (cd "$SHA_DIR" && sha256sum -c "$SHA_BASE"); then
     CHECKSUM_READY=yes
   else
     CHECKSUM_READY=no
