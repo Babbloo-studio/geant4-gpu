@@ -11,6 +11,8 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
@@ -251,7 +253,24 @@ def write_summary(results: Sequence[ComparisonResult], output: Path) -> None:
     output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
 
 
-def run(candidate: Path, reference: Path, output: Path) -> int:
+def resolve_run_path(path: Path, run_root: Path) -> Path:
+    """Resolve relative scaffold paths below a writable V7 run root."""
+
+    expanded = path.expanduser()
+    if expanded.is_absolute():
+        return expanded
+    return run_root / expanded
+
+
+def run(candidate: Path, reference: Path, output: Path, run_root: Path) -> int:
+    run_root = run_root.expanduser().resolve()
+    candidate = resolve_run_path(candidate, run_root)
+    reference = resolve_run_path(reference, run_root)
+    output = resolve_run_path(output, run_root)
+    print(f"V7 run root: {run_root}", file=sys.stderr)
+    print(f"V7 candidate input: {candidate}", file=sys.stderr)
+    print(f"V7 reference input: {reference}", file=sys.stderr)
+    print(f"V7 summary output: {output}", file=sys.stderr)
     samples = load_observables(candidate, reference)
     results = compare_observables(samples)
     write_summary(results, output)
@@ -263,6 +282,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--candidate", required=True, type=Path, help="G4GPU ROOT/Parquet output")
     parser.add_argument("--reference", required=True, type=Path, help="Geant4 reference ROOT/Parquet output")
     parser.add_argument(
+        "--run-root",
+        default=Path(os.environ.get("G4GPU_V7_RUN_ROOT", ".")),
+        type=Path,
+        help=(
+            "Writable root for relative input/output paths "
+            "(default: G4GPU_V7_RUN_ROOT or current directory)"
+        ),
+    )
+    parser.add_argument(
         "--output",
         default=Path("output/v7_summary.json"),
         type=Path,
@@ -273,7 +301,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    return run(args.candidate, args.reference, args.output)
+    return run(args.candidate, args.reference, args.output, args.run_root)
 
 
 if __name__ == "__main__":

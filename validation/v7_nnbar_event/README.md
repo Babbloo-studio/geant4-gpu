@@ -23,7 +23,9 @@ physics agreement.
   events for the final validation run.
 - Event selection: same random-seed manifest and same primary kinematic window
   for both backends once the real readers are implemented.
-- Output paths used by the scaffold:
+- Run root: relative paths resolve under `--run-root`, `G4GPU_V7_RUN_ROOT`, or
+  the SLURM submit directory used by `submit_v7.slurm`.
+- Output paths used by the scaffold, relative to that run root:
   - Candidate ROOT/Parquet: `output/v7_g4gpu.root`
   - Reference ROOT/Parquet: `output/v7_geant4_ref.root`
   - JSON summary: `output/v7_summary.json`
@@ -64,6 +66,7 @@ The runner must return nonzero when any of the following occur:
 
 - Input file format is unsupported.
 - ROOT or Parquet branch mapping has not yet been implemented.
+- The configured run root or JSON output directory is not writable.
 - Candidate/reference sub-detector or layer groups do not match.
 - Any required observable has fewer than two finite entries in either sample.
 - Any KS, mean, or RMS acceptance tolerance fails.
