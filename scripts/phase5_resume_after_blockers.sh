@@ -10,7 +10,16 @@ GPU_JOB_ID="${G4GPU_PHASE5_GPU_CTEST_JOB:-3041846}"
 REMOTE="${G4GPU_PHASE5_REMOTE:-origin}"
 BRANCH="${G4GPU_PHASE5_BRANCH:-lane/g4gpu-phase5}"
 PUBLICATION_DIR="${G4GPU_PHASE5_PUBLICATION_DIR:-/projects/hep/fs10/shared/nnbar/billy/g4gpu-phase5-publication}"
-SHA_FILE="${PUBLICATION_DIR}/SHA256SUMS-15f28c0"
+if [[ -n "${G4GPU_PHASE5_SHA_FILE:-}" ]]; then
+  SHA_FILE="$G4GPU_PHASE5_SHA_FILE"
+else
+  HEAD_SHORT="$(git rev-parse --short HEAD 2>/dev/null || true)"
+  if [[ -n "$HEAD_SHORT" && -f "${PUBLICATION_DIR}/SHA256SUMS-${HEAD_SHORT}" ]]; then
+    SHA_FILE="${PUBLICATION_DIR}/SHA256SUMS-${HEAD_SHORT}"
+  else
+    SHA_FILE="$(ls -1t "${PUBLICATION_DIR}"/SHA256SUMS-* 2>/dev/null | head -1 || true)"
+  fi
+fi
 
 section() {
   printf '\n== %s ==\n' "$*"
