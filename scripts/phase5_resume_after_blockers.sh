@@ -10,10 +10,12 @@ GPU_JOB_ID="${G4GPU_PHASE5_GPU_CTEST_JOB:-3041846}"
 REMOTE="${G4GPU_PHASE5_REMOTE:-origin}"
 BRANCH="${G4GPU_PHASE5_BRANCH:-lane/g4gpu-phase5}"
 PUBLICATION_DIR="${G4GPU_PHASE5_PUBLICATION_DIR:-/projects/hep/fs10/shared/nnbar/billy/g4gpu-phase5-publication}"
+LOCAL_MIRROR="${G4GPU_PHASE5_LOCAL_MIRROR:-${PUBLICATION_DIR}/geant4-gpu-phase5.git}"
+CURRENT_HEAD="$(git rev-parse HEAD 2>/dev/null || true)"
+HEAD_SHORT="$(git rev-parse --short HEAD 2>/dev/null || true)"
 if [[ -n "${G4GPU_PHASE5_SHA_FILE:-}" ]]; then
   SHA_FILE="$G4GPU_PHASE5_SHA_FILE"
 else
-  HEAD_SHORT="$(git rev-parse --short HEAD 2>/dev/null || true)"
   if [[ -n "$HEAD_SHORT" && -f "${PUBLICATION_DIR}/SHA256SUMS-${HEAD_SHORT}" ]]; then
     SHA_FILE="${PUBLICATION_DIR}/SHA256SUMS-${HEAD_SHORT}"
   else
@@ -32,6 +34,7 @@ git log --oneline "${REMOTE}/${BRANCH}..HEAD" || true
 GPU_CTEST_READY=unknown
 GITHUB_READY=unknown
 CHECKSUM_READY=unknown
+MIRROR_READY=unknown
 
 section "GPU CTest job ${GPU_JOB_ID}"
 if command -v squeue >/dev/null 2>&1; then
@@ -66,6 +69,27 @@ else
   CHECKSUM_READY=no
 fi
 
+section "local mirror fallback"
+if [[ -d "$LOCAL_MIRROR" ]]; then
+  mirror_ref="refs/heads/${BRANCH}"
+  mirror_head="$(git --git-dir="$LOCAL_MIRROR" rev-parse "$mirror_ref" 2>/dev/null || true)"
+  printf 'mirror=%s\n' "$LOCAL_MIRROR"
+  printf 'mirror_ref=%s\n' "$mirror_ref"
+  printf 'mirror_head=%s\n' "$mirror_head"
+  printf 'current_head=%s\n' "$CURRENT_HEAD"
+  if [[ -n "$CURRENT_HEAD" && "$mirror_head" == "$CURRENT_HEAD" ]] && \
+     git --git-dir="$LOCAL_MIRROR" fsck --strict >/tmp/g4gpu_phase5_mirror_fsck 2>&1; then
+    cat /tmp/g4gpu_phase5_mirror_fsck
+    MIRROR_READY=yes
+  else
+    cat /tmp/g4gpu_phase5_mirror_fsck 2>/dev/null || true
+    MIRROR_READY=no
+  fi
+else
+  echo "local mirror not found: $LOCAL_MIRROR"
+  MIRROR_READY=no
+fi
+
 section "GitHub auth and push readiness"
 if command -v gh >/dev/null 2>&1; then
   if gh auth status >/tmp/g4gpu_phase5_gh_auth 2>&1; then
@@ -87,6 +111,7 @@ fi
 section "summary"
 printf 'GPU_CTEST_READY=%s\n' "$GPU_CTEST_READY"
 printf 'CHECKSUM_READY=%s\n' "$CHECKSUM_READY"
+printf 'MIRROR_READY=%s\n' "$MIRROR_READY"
 printf 'GITHUB_READY=%s\n' "$GITHUB_READY"
 if [[ "$GPU_CTEST_READY" == yes && "$CHECKSUM_READY" == yes && "$GITHUB_READY" == yes ]]; then
   echo "READY: external blockers appear clear; push branch and request planner review before 5d."
