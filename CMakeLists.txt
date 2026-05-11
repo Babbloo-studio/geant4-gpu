@@ -38,6 +38,10 @@ if(DEFINED Geant4_USE_FILE)
   include(${Geant4_USE_FILE})
 endif()
 find_package(CUDAToolkit REQUIRED)
+get_target_property(G4GPU_CUDART_INCLUDE_DIRS CUDA::cudart INTERFACE_INCLUDE_DIRECTORIES)
+list(GET G4GPU_CUDART_INCLUDE_DIRS 0 G4GPU_CUDART_INCLUDE_DIR)
+get_filename_component(G4GPU_CUDA_TOOLKIT_ROOT "${CUDAToolkit_BIN_DIR}/.." REALPATH)
+set(G4GPU_CUDA_TARGET_LIB_DIR "${G4GPU_CUDA_TOOLKIT_ROOT}/targets/x86_64-linux/lib")
 
 if(G4GPU_WITH_OPTICAL OR G4GPU_WITH_RTX)
   find_package(OptiX REQUIRED)
@@ -56,9 +60,16 @@ target_include_directories(G4GPU
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
     ${Geant4_INCLUDE_DIRS}
+    ${CUDAToolkit_INCLUDE_DIRS}
+    ${G4GPU_CUDART_INCLUDE_DIRS}
 )
 
 target_compile_definitions(G4GPU PUBLIC G4GPU_HAVE_GEANT4=1)
+target_compile_options(G4GPU PRIVATE
+  $<$<COMPILE_LANGUAGE:CXX>:-I${G4GPU_CUDART_INCLUDE_DIR}>
+)
+target_link_directories(G4GPU PRIVATE "${G4GPU_CUDA_TARGET_LIB_DIR}")
+target_link_options(G4GPU PRIVATE "-L${G4GPU_CUDA_TARGET_LIB_DIR}")
 target_link_libraries(G4GPU PUBLIC ${Geant4_LIBRARIES} CUDA::cudart)
 if(G4GPU_WITH_MUON)
   target_compile_definitions(G4GPU PUBLIC G4GPU_WITH_MUON=1)
