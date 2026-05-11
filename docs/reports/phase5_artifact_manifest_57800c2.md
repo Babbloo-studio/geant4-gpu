@@ -67,6 +67,19 @@ This manifest records checksums for ignored LUNARC evidence artifacts used by `d
 | `benchmarks/profiles/phase5b_cpu_57800c2.slurm` | 2748 | `bcba3c413027db9c8e23bfc9e3eb9d20209f9cb0dd07f6eb2adcdaea182e74af` |
 | `benchmarks/profiles/phase5b_cpu_57800c2_3041873.out` | 1782 | `ecd6d6e5e71172df1cd68df5e0257bf2c9f584af0bf1f4927d5b0edcdcd8cec7` |
 
+
+## Pending full GPU CTest job evidence
+
+| Path / field | Value |
+| --- | --- |
+| SLURM job id | `3041846` |
+| Current state at 2026-05-11 17:24 CEST | `PENDING (Priority)` |
+| Estimated start | `2026-05-12T09:59:00` on `cg04` |
+| Submitted script | `build/g4gpu_phase5_ctest_current.slurm` |
+| Submitted script bytes | 890 |
+| Submitted script SHA256 | `0e496a4aac218eab86f213535235a554f2916205ecf3809547bca93e9cb7cc14` |
+| Runtime note | The original script contains `#SBATCH --time=00:15:00`, but the live job was shortened with `scontrol update JobId=3041846 TimeLimit=00:05:00`; `scontrol show job 3041846` reports `TimeLimit=00:05:00`. |
+
 ## Audit status
 
 All expected artifact sections had at least one file at generation time.
