@@ -67,6 +67,12 @@ elseif(G4GPU_WITH_CURAND)
   target_link_libraries(G4GPU PRIVATE CUDA::curand)
 endif()
 
+if(G4GPU_WITH_EM)
+  target_compile_definitions(G4GPU PUBLIC G4GPU_WITH_EM=1)
+  target_sources(G4GPU PRIVATE src/physics/EMStepKernel.cu)
+  target_link_libraries(G4GPU PRIVATE CUDA::curand)
+endif()
+
 if(G4GPU_WITH_OPTICAL OR G4GPU_WITH_RTX)
   target_link_libraries(G4GPU PUBLIC ${OptiX_LIBRARIES})
   target_include_directories(G4GPU PRIVATE ${OptiX_INCLUDE_DIRS})
@@ -100,6 +106,17 @@ if(G4GPU_WITH_MUON)
   target_link_libraries(test_mcs PRIVATE G4GPU)
   set_target_properties(test_mcs PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
   add_test(NAME g4gpu_mcs COMMAND ${CMAKE_BINARY_DIR}/tests/test_mcs)
+endif()
+
+if(G4GPU_WITH_EM)
+  add_executable(test_em_klein_nishina tests/test_em_klein_nishina.cu)
+  target_link_libraries(test_em_klein_nishina PRIVATE G4GPU)
+  set_target_properties(test_em_klein_nishina
+    PROPERTIES
+      CUDA_SEPARABLE_COMPILATION ON
+      RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+  )
+  add_test(NAME g4gpu_em_klein_nishina COMMAND ${CMAKE_BINARY_DIR}/tests/test_em_klein_nishina)
 endif()
 
 add_executable(test_benchmark_manifest tests/test_benchmark_manifest.cc)
