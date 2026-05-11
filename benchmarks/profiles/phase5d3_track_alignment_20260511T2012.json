@@ -1,0 +1,220 @@
+{
+  "aligned_mode": "default alignas(64) Track",
+  "backend_probe": "PASS: alignof(Track)=64, sizeof(Track)=64, backend=alignas64-track",
+  "benchmarks": {
+    "beam_neutron": {
+      "aligned": {
+        "median_ns": 166947070,
+        "times_ns": [
+          166947070,
+          166415230,
+          168250333,
+          169516544,
+          165575741,
+          165670570,
+          171486259
+        ]
+      },
+      "packed": {
+        "median_ns": 170106374,
+        "times_ns": [
+          169513038,
+          170106374,
+          169780771,
+          171224457,
+          169787414,
+          170590715,
+          171202416
+        ]
+      },
+      "speedup": 1.0189239859076293
+    },
+    "cosmic_shower": {
+      "aligned": {
+        "median_ns": 169339111,
+        "times_ns": [
+          168937595,
+          170679993,
+          169793415,
+          169231207,
+          169448606,
+          169027444,
+          169339111
+        ]
+      },
+      "packed": {
+        "median_ns": 174605192,
+        "times_ns": [
+          173872173,
+          174605192,
+          175478024,
+          174242479,
+          175627715,
+          173850893,
+          174867315
+        ]
+      },
+      "speedup": 1.0310978424824728
+    },
+    "gamma_100mev": {
+      "aligned": {
+        "median_ns": 168113852,
+        "times_ns": [
+          168026647,
+          169795555,
+          167283640,
+          169638009,
+          168113852,
+          168134410,
+          167602359
+        ]
+      },
+      "packed": {
+        "median_ns": 173570977,
+        "times_ns": [
+          173621893,
+          173765623,
+          173648543,
+          173096895,
+          172560736,
+          173570977,
+          173182015
+        ]
+      },
+      "speedup": 1.0324608884697972
+    },
+    "muon_10gev": {
+      "aligned": {
+        "median_ns": 169139430,
+        "times_ns": [
+          169139430,
+          167956726,
+          170009658,
+          169689705,
+          168862159,
+          169390513,
+          168293199
+        ]
+      },
+      "packed": {
+        "median_ns": 175287976,
+        "times_ns": [
+          174898304,
+          175578714,
+          175287976,
+          175588512,
+          176382916,
+          174796563,
+          175182338
+        ]
+      },
+      "speedup": 1.0363519375700865
+    },
+    "nbar_carbon": {
+      "aligned": {
+        "median_ns": 166180925,
+        "times_ns": [
+          165610222,
+          167172279,
+          166066941,
+          165990286,
+          166407090,
+          166267798,
+          166180925
+        ]
+      },
+      "packed": {
+        "median_ns": 170514617,
+        "times_ns": [
+          170514617,
+          169502734,
+          170216546,
+          170691300,
+          171032120,
+          169786688,
+          171364676
+        ]
+      },
+      "speedup": 1.0260781554802394
+    },
+    "optical_scintillator": {
+      "aligned": {
+        "median_ns": 166629243,
+        "times_ns": [
+          168650505,
+          165509236,
+          166625857,
+          166629243,
+          168771243,
+          167265600,
+          165171270
+        ]
+      },
+      "packed": {
+        "median_ns": 170084563,
+        "times_ns": [
+          170427488,
+          169956081,
+          170215058,
+          169725377,
+          170242069,
+          169944349,
+          170084563
+        ]
+      },
+      "speedup": 1.0207365762323004
+    }
+  },
+  "build_dir": "/projects/hep/fs10/shared/nnbar/billy/geant4-gpu/build_phase5d3",
+  "date": "2026-05-11T20:12:00+02:00",
+  "events": 10000,
+  "lane": "g4gpu-phase5",
+  "reference_mode": "G4GPU_TRACK_DISABLE_ALIGNED=1",
+  "repetitions": 7,
+  "source_head_before_commit": "471a3630c958b7c010eeb5ca7e1bb91fd843715e",
+  "subphase": "5d.3 cache-line aligned tracks",
+  "validation": {
+    "beam_neutron": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "cosmic_shower": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "gamma_100mev": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "muon_10gev": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "nbar_carbon": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "optical_scintillator": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    }
+  }
+}

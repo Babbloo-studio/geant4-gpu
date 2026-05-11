@@ -16,6 +16,7 @@
 #include "StandInGeometry.hh"
 #include "g4gpu/BranchlessSolids.hh"
 #include "g4gpu/CrossSectionInterpolator.hh"
+#include "g4gpu/Track.hh"
 
 namespace g4gpu::benchmarks {
 
@@ -204,6 +205,7 @@ inline std::vector<BenchmarkRow> GenerateRows(const BenchmarkEventSpec& event,
                                               int events) {
     constexpr int kXSQueriesPerEvent = 128;
     constexpr int kSolidQueriesPerEvent = 192;
+    constexpr int kTrackQueriesPerEvent = 128;
     const auto& geometry = GeometryById(event.geometry_id);
     std::vector<BenchmarkRow> rows;
     rows.reserve(static_cast<std::size_t>(events));
@@ -244,6 +246,23 @@ inline std::vector<BenchmarkRow> GenerateRows(const BenchmarkEventSpec& event,
                                 solid_dx.data(), solid_dy.data(), solid_dz.data(),
                                 solid_distance.data(), solid_distance.size());
 
+    const std::size_t track_count = static_cast<std::size_t>(events) * kTrackQueriesPerEvent;
+    double track_sum = 0.0;
+    if (std::getenv("G4GPU_TRACK_DISABLE_ALIGNED") != nullptr) {
+        std::vector<g4gpu::PackedTrack> tracks(track_count);
+        for (std::size_t i = 0; i < track_count; ++i) {
+            g4gpu::FillPackedTrack(tracks[i], static_cast<int>(i), static_cast<float>(event.primary_ke_mev));
+        }
+        track_sum = g4gpu::AccumulatePackedTrackKinematics(tracks.data(), tracks.size());
+    } else {
+        std::vector<g4gpu::Track> tracks(track_count);
+        for (std::size_t i = 0; i < track_count; ++i) {
+            g4gpu::FillTrack(tracks[i], static_cast<int>(i), static_cast<float>(event.primary_ke_mev));
+        }
+        track_sum = g4gpu::AccumulateAlignedTrackKinematics(tracks.data(), tracks.size());
+    }
+    const double track_mean = track_count > 0 ? track_sum / static_cast<double>(track_count) : 0.0;
+
     const double density_scale = std::max(0.2, geometry.density_g_cm3 / 2.0);
     for (int i = 0; i < events; ++i) {
         double xs_mean = 0.0;
@@ -271,8 +290,9 @@ inline std::vector<BenchmarkRow> GenerateRows(const BenchmarkEventSpec& event,
                                                       (1.0 + 0.12 * unit_normal(rng)))));
         const double xs_scale = 1.0 + 1.0e-4 * (xs_mean - 0.75);
         const double solid_scale = 1.0 + 1.0e-10 * (solid_mean - 25.0);
+        const double track_scale = 1.0 + 1.0e-12 * (track_mean - 25.0);
         const double deposited = std::max(
-            0.0, event.deposited_energy_mev * density_scale * xs_scale * solid_scale *
+            0.0, event.deposited_energy_mev * density_scale * xs_scale * solid_scale * track_scale *
                      (1.0 + 0.04 * unit_normal(rng)));
         const int multiplicity =
             std::max(1, static_cast<int>(std::llround(1.0 + hits / 35.0 +

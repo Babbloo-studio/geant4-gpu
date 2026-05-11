@@ -46,6 +46,7 @@ endif()
 add_library(G4GPU SHARED
   src/core/G4GPUTrackBuffer.cc
   src/core/G4GPUTrackingManager.cc
+  src/core/Track.cc
   src/geometry/VoxelGeometry.cc
   src/geometry/VoxelGeometry.cu
   src/hits/G4GPUHitBuffer.cu
@@ -55,6 +56,7 @@ add_library(G4GPU SHARED
 set_source_files_properties(
   src/physics/CrossSectionInterpolator.cc
   src/geometry/branchless_solids.cc
+  src/core/Track.cc
   PROPERTIES COMPILE_OPTIONS "-O3"
 )
 
@@ -118,6 +120,11 @@ add_executable(test_branchless_solids tests/test_branchless_solids.cc)
 target_link_libraries(test_branchless_solids PRIVATE G4GPU)
 set_target_properties(test_branchless_solids PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
 add_test(NAME g4gpu_branchless_solids COMMAND ${CMAKE_BINARY_DIR}/tests/test_branchless_solids)
+
+add_executable(test_track_alignment tests/test_track_alignment.cc)
+target_link_libraries(test_track_alignment PRIVATE G4GPU)
+set_target_properties(test_track_alignment PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
+add_test(NAME g4gpu_track_alignment COMMAND ${CMAKE_BINARY_DIR}/tests/test_track_alignment)
 
 add_executable(test_benchmark_manifest tests/test_benchmark_manifest.cc)
 target_link_libraries(test_benchmark_manifest PRIVATE G4GPU)
