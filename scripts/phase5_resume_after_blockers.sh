@@ -29,6 +29,10 @@ section "branch"
 git status --short --branch
 git log --oneline "${REMOTE}/${BRANCH}..HEAD" || true
 
+GPU_CTEST_READY=unknown
+GITHUB_READY=unknown
+CHECKSUM_READY=unknown
+
 section "GPU CTest job ${GPU_JOB_ID}"
 if command -v squeue >/dev/null 2>&1; then
   squeue --start -j "$GPU_JOB_ID" 2>/dev/null || true
@@ -36,6 +40,12 @@ if command -v squeue >/dev/null 2>&1; then
 fi
 if command -v sacct >/dev/null 2>&1; then
   sacct -j "$GPU_JOB_ID" --format=JobID,State,Elapsed,ExitCode -X 2>/dev/null || true
+  sacct_line="$(sacct -P -n -j "$GPU_JOB_ID" --format=State,ExitCode -X 2>/dev/null | head -1 || true)"
+  if [[ "$sacct_line" == COMPLETED\|0:0 ]]; then
+    GPU_CTEST_READY=yes
+  elif [[ -n "$sacct_line" ]]; then
+    GPU_CTEST_READY=no
+  fi
 fi
 if [[ -f "build/g4gpu_phase5_ctest_current_${GPU_JOB_ID}.out" ]]; then
   section "GPU CTest output tail"
@@ -44,21 +54,42 @@ fi
 
 section "publication fallback checksums"
 if [[ -f "$SHA_FILE" ]]; then
-  sha256sum -c "$SHA_FILE"
+  if sha256sum -c "$SHA_FILE"; then
+    CHECKSUM_READY=yes
+  else
+    CHECKSUM_READY=no
+  fi
 else
   echo "missing fallback checksum file: $SHA_FILE" >&2
+  CHECKSUM_READY=no
 fi
 
 section "GitHub auth and push readiness"
 if command -v gh >/dev/null 2>&1; then
-  gh auth status 2>&1 || true
+  if gh auth status >/tmp/g4gpu_phase5_gh_auth 2>&1; then
+    GITHUB_READY=yes
+  else
+    GITHUB_READY=no
+  fi
+  cat /tmp/g4gpu_phase5_gh_auth
 else
   echo "gh not found"
+  GITHUB_READY=no
 fi
 if git ls-remote --heads "$REMOTE" "$BRANCH" >/tmp/g4gpu_phase5_remote_ref 2>/tmp/g4gpu_phase5_remote_err; then
   cat /tmp/g4gpu_phase5_remote_ref
 else
   cat /tmp/g4gpu_phase5_remote_err >&2 || true
+fi
+
+section "summary"
+printf 'GPU_CTEST_READY=%s\n' "$GPU_CTEST_READY"
+printf 'CHECKSUM_READY=%s\n' "$CHECKSUM_READY"
+printf 'GITHUB_READY=%s\n' "$GITHUB_READY"
+if [[ "$GPU_CTEST_READY" == yes && "$CHECKSUM_READY" == yes && "$GITHUB_READY" == yes ]]; then
+  echo "READY: external blockers appear clear; push branch and request planner review before 5d."
+else
+  echo "BLOCKED: do not start 5d yet."
 fi
 
 cat <<'MSG'
