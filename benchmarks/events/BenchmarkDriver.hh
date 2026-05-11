@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
@@ -13,6 +14,7 @@
 #include <vector>
 
 #include "StandInGeometry.hh"
+#include "g4gpu/CrossSectionInterpolator.hh"
 
 namespace g4gpu::benchmarks {
 
@@ -185,8 +187,21 @@ inline void PrintUsage(const BenchmarkEventSpec& event, std::ostream& os) {
        << "\n";
 }
 
+inline const std::array<float, 257>& CrossSectionReferenceTable() {
+    static const std::array<float, 257> table = [] {
+        std::array<float, 257> values{};
+        for (std::size_t i = 0; i < values.size(); ++i) {
+            const float x = static_cast<float>(i);
+            values[i] = 0.35f + 0.0025f * x + 0.04f * std::sin(0.055f * x);
+        }
+        return values;
+    }();
+    return table;
+}
+
 inline std::vector<BenchmarkRow> GenerateRows(const BenchmarkEventSpec& event,
                                               int events) {
+    constexpr int kXSQueriesPerEvent = 128;
     const auto& geometry = GeometryById(event.geometry_id);
     std::vector<BenchmarkRow> rows;
     rows.reserve(static_cast<std::size_t>(events));
@@ -194,8 +209,27 @@ inline std::vector<BenchmarkRow> GenerateRows(const BenchmarkEventSpec& event,
     std::normal_distribution<double> unit_normal(0.0, 1.0);
     std::uniform_real_distribution<double> uniform(0.0, 1.0);
 
+    const auto& xs_grid = CrossSectionReferenceTable();
+    const g4gpu::UniformCrossSectionTable xs_table{xs_grid.data(), xs_grid.size(), 0.0f, 0.5f};
+    std::vector<float> xs_queries(static_cast<std::size_t>(events) * kXSQueriesPerEvent);
+    for (std::size_t i = 0; i < xs_queries.size(); ++i) {
+        const double phase = static_cast<double>((i * 1103515245ULL + event.seed) & 0xffffu);
+        xs_queries[i] = static_cast<float>(std::fmod(event.primary_ke_mev * 0.013 +
+                                                     phase * 0.001953125,
+                                                     128.0));
+    }
+    std::vector<float> xs_values(xs_queries.size());
+    g4gpu::InterpolateCrossSectionBatch(xs_table, xs_queries.data(), xs_values.data(),
+                                        xs_queries.size());
+
     const double density_scale = std::max(0.2, geometry.density_g_cm3 / 2.0);
     for (int i = 0; i < events; ++i) {
+        double xs_mean = 0.0;
+        const std::size_t xs_offset = static_cast<std::size_t>(i) * kXSQueriesPerEvent;
+        for (int j = 0; j < kXSQueriesPerEvent; ++j) {
+            xs_mean += xs_values[xs_offset + static_cast<std::size_t>(j)];
+        }
+        xs_mean /= static_cast<double>(kXSQueriesPerEvent);
         const double theta = std::acos(std::clamp(1.0 - 2.0 * uniform(rng), -1.0, 1.0));
         const double phi = 2.0 * 3.14159265358979323846 * uniform(rng);
         const double p = std::sqrt(std::max(0.0, event.primary_ke_mev *
@@ -206,8 +240,9 @@ inline std::vector<BenchmarkRow> GenerateRows(const BenchmarkEventSpec& event,
         const int hits = std::max(0, static_cast<int>(
                                          std::llround(event.mean_hits *
                                                       (1.0 + 0.12 * unit_normal(rng)))));
+        const double xs_scale = 1.0 + 1.0e-4 * (xs_mean - 0.75);
         const double deposited = std::max(
-            0.0, event.deposited_energy_mev * density_scale *
+            0.0, event.deposited_energy_mev * density_scale * xs_scale *
                      (1.0 + 0.04 * unit_normal(rng)));
         const int multiplicity =
             std::max(1, static_cast<int>(std::llround(1.0 + hits / 35.0 +

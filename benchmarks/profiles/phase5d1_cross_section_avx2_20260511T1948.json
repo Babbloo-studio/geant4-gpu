@@ -1,0 +1,220 @@
+{
+  "backend_probe": "PASS: cross-section interpolation backend=avx2, max_abs=0",
+  "benchmarks": {
+    "beam_neutron": {
+      "scalar": {
+        "median_ns": 19053155,
+        "times_ns": [
+          19322752,
+          18920735,
+          19241660,
+          19130089,
+          18914103,
+          19053155,
+          18951564
+        ]
+      },
+      "simd": {
+        "median_ns": 15391887,
+        "times_ns": [
+          15391887,
+          15311485,
+          16237327,
+          15472498,
+          15427083,
+          15194946,
+          15124153
+        ]
+      },
+      "speedup": 1.2378699895600844
+    },
+    "cosmic_shower": {
+      "scalar": {
+        "median_ns": 18895268,
+        "times_ns": [
+          18816639,
+          18769971,
+          19005785,
+          18843130,
+          18895268,
+          20666410,
+          19049458
+        ]
+      },
+      "simd": {
+        "median_ns": 15296317,
+        "times_ns": [
+          15286759,
+          15296317,
+          15353475,
+          15478780,
+          15148089,
+          15287771,
+          16100089
+        ]
+      },
+      "speedup": 1.2352821924388726
+    },
+    "gamma_100mev": {
+      "scalar": {
+        "median_ns": 19172509,
+        "times_ns": [
+          19172509,
+          18835746,
+          18779229,
+          18942376,
+          19853840,
+          19885110,
+          19432158
+        ]
+      },
+      "simd": {
+        "median_ns": 15530136,
+        "times_ns": [
+          15595280,
+          15316244,
+          15337325,
+          15433044,
+          15530136,
+          15691029,
+          15602393
+        ]
+      },
+      "speedup": 1.234535808314879
+    },
+    "muon_10gev": {
+      "scalar": {
+        "median_ns": 19159525,
+        "times_ns": [
+          19159525,
+          19954310,
+          20947489,
+          19280582,
+          18791853,
+          19057102,
+          19103609
+        ]
+      },
+      "simd": {
+        "median_ns": 15387058,
+        "times_ns": [
+          15336582,
+          15318208,
+          15644082,
+          15254057,
+          15387058,
+          15413006,
+          16165683
+        ]
+      },
+      "speedup": 1.2451714291321967
+    },
+    "nbar_carbon": {
+      "scalar": {
+        "median_ns": 19269962,
+        "times_ns": [
+          18907460,
+          18948197,
+          19655708,
+          19325857,
+          20715463,
+          19143795,
+          19269962
+        ]
+      },
+      "simd": {
+        "median_ns": 15384393,
+        "times_ns": [
+          15403007,
+          15354056,
+          15436401,
+          15246032,
+          15378672,
+          15526931,
+          15384393
+        ]
+      },
+      "speedup": 1.252565635836266
+    },
+    "optical_scintillator": {
+      "scalar": {
+        "median_ns": 19005565,
+        "times_ns": [
+          20217956,
+          18788216,
+          18746838,
+          18769260,
+          19244004,
+          19005565,
+          19157310
+        ]
+      },
+      "simd": {
+        "median_ns": 15245482,
+        "times_ns": [
+          15253536,
+          15081783,
+          15269606,
+          15181010,
+          15491605,
+          15149610,
+          15245482
+        ]
+      },
+      "speedup": 1.2466358885865334
+    }
+  },
+  "build_dir": "/projects/hep/fs10/shared/nnbar/billy/geant4-gpu/build_phase5d1",
+  "date": "2026-05-11T19:48:00+02:00",
+  "events": 10000,
+  "lane": "g4gpu-phase5",
+  "repetitions": 7,
+  "scalar_mode": "G4GPU_XS_DISABLE_SIMD=1",
+  "simd_mode": "default runtime dispatch",
+  "source_head_before_commit": "da749fcec087ce9dd8a2e4c274158771347003b3",
+  "subphase": "5d.1 cross-section interpolator AVX2/AVX-512/NEON dispatch",
+  "validation": {
+    "beam_neutron": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "cosmic_shower": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "gamma_100mev": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "muon_10gev": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "nbar_carbon": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "optical_scintillator": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    }
+  }
+}
