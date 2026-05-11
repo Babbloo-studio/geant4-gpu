@@ -1,0 +1,5 @@
+build/
+benchmarks/results/
+benchmarks/profiles/
+._*
+**/._*

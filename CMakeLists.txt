@@ -18,6 +18,8 @@ option(G4GPU_WITH_NEUTRON "Enable neutron elastic kernels" ON)
 option(G4GPU_WITH_CURAND  "Link cuRAND for stochastic physics kernels" OFF)
 option(G4GPU_WITH_OPTICAL "Enable OptiX optical transport" OFF)
 option(G4GPU_WITH_RTX     "Enable RTX geometry backend"    OFF)
+set(G4GPU_BENCHMARK_PYTHON "/projects/hep/fs10/shared/nnbar/billy/packages/hibeam_env/bin/python"
+    CACHE STRING "Python interpreter with pyarrow for benchmark Parquet output")
 
 if(DEFINED Geant4_DIR)
   get_filename_component(_g4gpu_geant4_prefix "${Geant4_DIR}/../../.." REALPATH)
@@ -99,3 +101,44 @@ if(G4GPU_WITH_MUON)
   set_target_properties(test_mcs PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
   add_test(NAME g4gpu_mcs COMMAND ${CMAKE_BINARY_DIR}/tests/test_mcs)
 endif()
+
+add_executable(test_benchmark_manifest tests/test_benchmark_manifest.cc)
+target_include_directories(test_benchmark_manifest PRIVATE benchmarks/events benchmarks/geometries)
+set_target_properties(test_benchmark_manifest PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
+add_test(NAME g4gpu_benchmark_manifest COMMAND ${CMAKE_BINARY_DIR}/tests/test_benchmark_manifest)
+
+set(G4GPU_BENCHMARK_EVENTS
+  gamma_100mev
+  muon_10gev
+  nbar_carbon
+  cosmic_shower
+  optical_scintillator
+  beam_neutron
+)
+
+foreach(_g4gpu_benchmark_event IN LISTS G4GPU_BENCHMARK_EVENTS)
+  add_executable(benchmark_${_g4gpu_benchmark_event}
+    benchmarks/events/${_g4gpu_benchmark_event}.cc
+  )
+  target_include_directories(benchmark_${_g4gpu_benchmark_event}
+    PRIVATE
+      benchmarks/events
+      benchmarks/geometries
+  )
+  target_compile_definitions(benchmark_${_g4gpu_benchmark_event}
+    PRIVATE
+      G4GPU_BENCHMARK_WRITER_PATH="${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/tools/write_parquet.py"
+      G4GPU_BENCHMARK_DEFAULT_PYTHON="${G4GPU_BENCHMARK_PYTHON}"
+  )
+  target_link_libraries(benchmark_${_g4gpu_benchmark_event} PRIVATE G4GPU)
+  set_target_properties(benchmark_${_g4gpu_benchmark_event}
+    PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/benchmarks
+  )
+  add_test(
+    NAME g4gpu_benchmark_${_g4gpu_benchmark_event}_smoke
+    COMMAND ${CMAKE_BINARY_DIR}/benchmarks/benchmark_${_g4gpu_benchmark_event}
+      --events 3
+      --commit smoke
+      --output ${CMAKE_BINARY_DIR}/benchmarks/results/${_g4gpu_benchmark_event}_smoke.parquet
+  )
+endforeach()
