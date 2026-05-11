@@ -103,9 +103,26 @@ if(G4GPU_WITH_MUON)
 endif()
 
 add_executable(test_benchmark_manifest tests/test_benchmark_manifest.cc)
-target_include_directories(test_benchmark_manifest PRIVATE benchmarks/events benchmarks/geometries)
+target_include_directories(test_benchmark_manifest
+  PRIVATE
+    benchmarks/canonical
+    benchmarks/events
+    benchmarks/geometries
+)
 set_target_properties(test_benchmark_manifest PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
 add_test(NAME g4gpu_benchmark_manifest COMMAND ${CMAKE_BINARY_DIR}/tests/test_benchmark_manifest)
+add_test(
+  NAME g4gpu_benchmark_script_syntax
+  COMMAND bash -lc
+    "bash -n '${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/run_baseline.sh' && bash -n '${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/profile_cpu.sh' && bash -n '${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/profile_gpu.sh'"
+)
+add_test(
+  NAME g4gpu_validate_harness
+  COMMAND ${G4GPU_BENCHMARK_PYTHON}
+    ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/tools/validate_self_test.py
+    ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/validate.py
+    ${CMAKE_BINARY_DIR}/benchmarks/validate-self
+)
 
 set(G4GPU_BENCHMARK_EVENTS
   gamma_100mev

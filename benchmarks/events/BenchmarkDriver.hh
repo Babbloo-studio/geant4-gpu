@@ -52,6 +52,7 @@ struct DriverOptions {
     std::string commit = "unknown";
     std::filesystem::path output;
     bool keep_csv = false;
+    bool csv_only = false;
     bool help = false;
 };
 
@@ -157,6 +158,9 @@ inline DriverOptions ParseDriverOptions(const BenchmarkEventSpec& event,
             options.output = require_value(arg);
         } else if (arg == "--keep-csv") {
             options.keep_csv = true;
+        } else if (arg == "--csv-only") {
+            options.csv_only = true;
+            options.keep_csv = true;
         } else if (arg == "--help" || arg == "-h") {
             options.help = true;
         } else {
@@ -174,7 +178,8 @@ inline DriverOptions ParseDriverOptions(const BenchmarkEventSpec& event,
 
 inline void PrintUsage(const BenchmarkEventSpec& event, std::ostream& os) {
     os << "Usage: benchmark_" << event.name
-       << " [--events N] [--commit HASH] [--output FILE.parquet] [--keep-csv]\n"
+       << " [--events N] [--commit HASH] [--output FILE.parquet] [--keep-csv]"
+          " [--csv-only]\n"
        << "Default events: " << event.default_events << "\n"
        << "Default output: " << DefaultOutputPath(event, "<commit>").generic_string()
        << "\n";
@@ -293,12 +298,18 @@ inline int RunBenchmarkDriver(const BenchmarkEventSpec& event, int argc, char** 
             steps > 0 ? static_cast<double>(wall_time_ns) / static_cast<double>(steps) : 0.0;
 
         WriteCsv(event, rows, csv_path, wall_time_ns, per_step_time_ns);
-        ConvertCsvToParquet(csv_path, options.output);
+        if (!options.csv_only) {
+            ConvertCsvToParquet(csv_path, options.output);
+        }
         if (!options.keep_csv) {
             std::filesystem::remove(csv_path);
         }
-        std::cout << "Wrote " << options.events << " events to "
-                  << options.output.generic_string() << '\n';
+        std::cout << "Wrote " << options.events << " events to ";
+        if (options.csv_only) {
+            std::cout << csv_path.generic_string() << '\n';
+        } else {
+            std::cout << options.output.generic_string() << '\n';
+        }
         return 0;
     } catch (const std::exception& exc) {
         std::cerr << "FAIL: " << event.name << ": " << exc.what() << '\n';

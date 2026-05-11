@@ -1,5 +1,7 @@
 build/
 benchmarks/results/
 benchmarks/profiles/
+__pycache__/
+**/__pycache__/
 ._*
 **/._*
