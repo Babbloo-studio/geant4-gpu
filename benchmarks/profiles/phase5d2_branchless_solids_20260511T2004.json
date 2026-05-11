@@ -1,0 +1,220 @@
+{
+  "backend_probe": "PASS: branchless solids backend=avx2-box-branchless, samples=4096, max_abs=0",
+  "benchmarks": {
+    "beam_neutron": {
+      "branchless": {
+        "median_ns": 141284553,
+        "times_ns": [
+          141284553,
+          141325830,
+          140650911,
+          140906371,
+          142213971,
+          141784133,
+          141077905
+        ]
+      },
+      "reference": {
+        "median_ns": 152160834,
+        "times_ns": [
+          151168627,
+          152199687,
+          152160834,
+          153022866,
+          152457102,
+          150823468,
+          151186932
+        ]
+      },
+      "speedup": 1.0769813880502563
+    },
+    "cosmic_shower": {
+      "branchless": {
+        "median_ns": 141158215,
+        "times_ns": [
+          140790813,
+          140591308,
+          141089747,
+          144616210,
+          141158215,
+          141696137,
+          141611858
+        ]
+      },
+      "reference": {
+        "median_ns": 151194085,
+        "times_ns": [
+          150332484,
+          150445307,
+          151194085,
+          149700014,
+          153021353,
+          152035388,
+          151881328
+        ]
+      },
+      "speedup": 1.0710966060317495
+    },
+    "gamma_100mev": {
+      "branchless": {
+        "median_ns": 140283860,
+        "times_ns": [
+          139406502,
+          140236261,
+          140826760,
+          140770604,
+          140544630,
+          140283860,
+          140130653
+        ]
+      },
+      "reference": {
+        "median_ns": 150688029,
+        "times_ns": [
+          152329722,
+          151908972,
+          150458268,
+          150153446,
+          151878255,
+          150456434,
+          150688029
+        ]
+      },
+      "speedup": 1.0741651177833287
+    },
+    "muon_10gev": {
+      "branchless": {
+        "median_ns": 140663704,
+        "times_ns": [
+          140837941,
+          141476620,
+          139902364,
+          141212364,
+          140041004,
+          140663704,
+          140398286
+        ]
+      },
+      "reference": {
+        "median_ns": 150789549,
+        "times_ns": [
+          150242722,
+          151688327,
+          150797024,
+          150788768,
+          150382666,
+          150789549,
+          151224998
+        ]
+      },
+      "speedup": 1.0719861962400763
+    },
+    "nbar_carbon": {
+      "branchless": {
+        "median_ns": 140913645,
+        "times_ns": [
+          141284653,
+          140243824,
+          141605286,
+          140636203,
+          139679984,
+          140913645,
+          141803729
+        ]
+      },
+      "reference": {
+        "median_ns": 151274150,
+        "times_ns": [
+          150197047,
+          151274150,
+          151533697,
+          151287104,
+          151682223,
+          150113452,
+          151115948
+        ]
+      },
+      "speedup": 1.0735237882747266
+    },
+    "optical_scintillator": {
+      "branchless": {
+        "median_ns": 140501089,
+        "times_ns": [
+          140192589,
+          139466894,
+          139282477,
+          140501089,
+          154610402,
+          140796895,
+          140619392
+        ]
+      },
+      "reference": {
+        "median_ns": 151525178,
+        "times_ns": [
+          151547210,
+          151525178,
+          150961347,
+          152379516,
+          150987898,
+          150629553,
+          153534108
+        ]
+      },
+      "speedup": 1.0784626587485027
+    }
+  },
+  "branchless_mode": "default runtime dispatch",
+  "build_dir": "/projects/hep/fs10/shared/nnbar/billy/geant4-gpu/build_phase5d2",
+  "date": "2026-05-11T20:04:00+02:00",
+  "events": 10000,
+  "lane": "g4gpu-phase5",
+  "reference_mode": "G4GPU_SOLIDS_DISABLE_BRANCHLESS=1",
+  "repetitions": 7,
+  "source_head_before_commit": "b9ebd2173c23f58a14d0277941bb796b4beb526b",
+  "subphase": "5d.2 branchless solids",
+  "validation": {
+    "beam_neutron": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "cosmic_shower": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "gamma_100mev": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "muon_10gev": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "nbar_carbon": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    },
+    "optical_scintillator": {
+      "max_kl_divergence": 0.0,
+      "min_ks_pvalue": 1.0,
+      "passed": true,
+      "rows_candidate": 1000,
+      "rows_reference": 1000
+    }
+  }
+}

@@ -50,9 +50,12 @@ add_library(G4GPU SHARED
   src/geometry/VoxelGeometry.cu
   src/hits/G4GPUHitBuffer.cu
   src/physics/CrossSectionInterpolator.cc
+  src/geometry/branchless_solids.cc
 )
-set_source_files_properties(src/physics/CrossSectionInterpolator.cc PROPERTIES
-  COMPILE_OPTIONS "-O3"
+set_source_files_properties(
+  src/physics/CrossSectionInterpolator.cc
+  src/geometry/branchless_solids.cc
+  PROPERTIES COMPILE_OPTIONS "-O3"
 )
 
 target_include_directories(G4GPU
@@ -110,6 +113,11 @@ add_executable(test_cross_section_interpolator tests/test_cross_section_interpol
 target_link_libraries(test_cross_section_interpolator PRIVATE G4GPU)
 set_target_properties(test_cross_section_interpolator PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
 add_test(NAME g4gpu_cross_section_interpolator COMMAND ${CMAKE_BINARY_DIR}/tests/test_cross_section_interpolator)
+
+add_executable(test_branchless_solids tests/test_branchless_solids.cc)
+target_link_libraries(test_branchless_solids PRIVATE G4GPU)
+set_target_properties(test_branchless_solids PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
+add_test(NAME g4gpu_branchless_solids COMMAND ${CMAKE_BINARY_DIR}/tests/test_branchless_solids)
 
 add_executable(test_benchmark_manifest tests/test_benchmark_manifest.cc)
 target_link_libraries(test_benchmark_manifest PRIVATE G4GPU)
