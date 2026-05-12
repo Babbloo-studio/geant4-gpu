@@ -17,6 +17,7 @@ EXPECTED_SCRIPT_TESTS = {
     "g4gpu_em_stub_fail_closed": "scripts/verify_em_gamma_stub_fail_closed.py",
     "g4gpu_em_publication_audit": "scripts/verify_em_gamma_publication_audit.py",
     "g4gpu_em_publication_artifacts": "scripts/verify_em_gamma_publication_artifacts.py",
+    "g4gpu_em_publication_transcript": "scripts/verify_em_gamma_publication_transcript.py",
     "g4gpu_em_source_boundary": "scripts/verify_em_gamma_source_boundary.py",
     "g4gpu_em_ctest_execution_boundary": "scripts/verify_em_gamma_ctest_execution_boundary.py",
     "g4gpu_em_report_coverage": "scripts/verify_em_gamma_report_coverage.py",

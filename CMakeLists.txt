@@ -159,6 +159,11 @@ if(G4GPU_WITH_EM)
               ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_em_gamma_publication_artifacts.py
     )
     add_test(
+      NAME g4gpu_em_publication_transcript
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_em_gamma_publication_transcript.py
+    )
+    add_test(
       NAME g4gpu_em_source_boundary
       COMMAND ${Python3_EXECUTABLE}
               ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_em_gamma_source_boundary.py

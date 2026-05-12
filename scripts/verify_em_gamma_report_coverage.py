@@ -91,6 +91,11 @@ EXPECTED = {
         "g4gpu_em_publication_artifacts",
         "current-head fallback publication artifacts",
     ),
+    "em_gamma_publication_transcript_20260512.md": Coverage(
+        "scripts/verify_em_gamma_publication_transcript.py",
+        "g4gpu_em_publication_transcript",
+        "current-head checker transcript evidence",
+    ),
     "em_gamma_process_selector_preflight_20260512.md": Coverage(
         "scripts/verify_em_gamma_process_selector_preflight.py",
         "g4gpu_em_process_selector_preflight",
