@@ -100,6 +100,8 @@ def main() -> int:
         "scripts/verify_em_gamma_table_owner_preflight.py",
         "NAME g4gpu_em_secondary_buffer_preflight",
         "scripts/verify_em_gamma_secondary_buffer_preflight.py",
+        "NAME g4gpu_em_rng_stream_preflight",
+        "scripts/verify_em_gamma_rng_stream_preflight.py",
     ):
         require(CMAKE, marker)
 
