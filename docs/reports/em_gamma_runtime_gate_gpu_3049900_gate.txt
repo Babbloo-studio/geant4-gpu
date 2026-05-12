@@ -1,0 +1,2 @@
+PASS: Klein-Nishina scattered-energy KS p=0.166506 D=0.0111339 samples=10000
+EM_GAMMA_RUNTIME_GATE_OK
