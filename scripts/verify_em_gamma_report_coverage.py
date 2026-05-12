@@ -106,6 +106,11 @@ EXPECTED = {
         "g4gpu_em_secondary_buffer_preflight",
         "shared preflight contract",
     ),
+    "em_gamma_source_boundary_20260512.md": Coverage(
+        "scripts/verify_em_gamma_source_boundary.py",
+        "g4gpu_em_source_boundary",
+        "source isolation boundary",
+    ),
     "em_gamma_status_code_preflight_20260512.md": Coverage(
         "scripts/verify_em_gamma_status_code_preflight.py",
         "g4gpu_em_status_code_preflight",

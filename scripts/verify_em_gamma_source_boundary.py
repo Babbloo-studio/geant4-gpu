@@ -11,6 +11,7 @@ CMAKE = ROOT / "CMakeLists.txt"
 STATIC = ROOT / "scripts/verify_em_gamma_static_contract.py"
 CHAIN = ROOT / "docs/reports/em_gamma_preflight_chain_audit_20260512.md"
 INDEX = ROOT / "docs/reports/em_gamma_preflight_contract_index_20260512.md"
+REPORT = ROOT / "docs/reports/em_gamma_source_boundary_20260512.md"
 SELF = Path(__file__)
 TEXT_SUFFIXES = {".cc", ".cu", ".cuh", ".hh", ".h", ".hpp", ".txt", ".md", ".py"}
 FORBIDDEN_SOURCE_MARKERS = (
@@ -80,13 +81,21 @@ def main() -> int:
         require(INDEX, marker)
 
     for marker in (
+        "source-boundary verifier scans the EM/gamma implementation roots",
+        "Guarded absent implementations",
+        "must not enter the source\nroots before the matching preflight contract",
+        "does not authorize SLURM submission",
+    ):
+        require(REPORT, marker)
+
+    for marker in (
         "NAME g4gpu_em_source_boundary",
         "scripts/verify_em_gamma_source_boundary.py",
     ):
         require(CMAKE, marker)
         require(STATIC, marker)
 
-    for path in (CMAKE, STATIC, SELF):
+    for path in (CMAKE, STATIC, REPORT, SELF):
         for forbidden in ("NN" "BAR" + "_Detector", "nnbar" + "_reconstruction"):
             require_absent(path, forbidden)
 
