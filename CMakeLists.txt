@@ -87,10 +87,23 @@ endif()
 
 if(G4GPU_WITH_RTX)
   target_compile_definitions(G4GPU PUBLIC G4GPU_WITH_RTX=1)
-  target_sources(G4GPU PRIVATE
-    src/geometry/RTXGeometry.cc
-    src/geometry/RTXGeometry.cu
-  )
+  target_sources(G4GPU PRIVATE src/geometry/RTXGeometry.cc)
+  list(GET CMAKE_CUDA_ARCHITECTURES 0 G4GPU_RTX_CUDA_ARCH)
+  set(G4GPU_RTX_PTX "${CMAKE_CURRENT_BINARY_DIR}/RTXGeometry.ptx")
+  add_custom_command(
+    OUTPUT "${G4GPU_RTX_PTX}"
+    COMMAND ${CMAKE_CUDA_COMPILER} --ptx -std=c++17
+            -arch=sm_${G4GPU_RTX_CUDA_ARCH}
+            -DG4GPU_WITH_RTX=1
+            -I${CMAKE_CURRENT_SOURCE_DIR}/include
+            -I${OptiX_INCLUDE_DIRS}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/geometry/RTXGeometry.cu
+            -o "${G4GPU_RTX_PTX}"
+    DEPENDS src/geometry/RTXGeometry.cu include/g4gpu/RTXGeometry.hh
+    VERBATIM)
+  add_custom_target(g4gpu_rtx_ptx DEPENDS "${G4GPU_RTX_PTX}")
+  add_dependencies(G4GPU g4gpu_rtx_ptx)
+  target_compile_definitions(G4GPU PRIVATE G4GPU_RTX_PTX_PATH="${G4GPU_RTX_PTX}")
 endif()
 
 set_target_properties(G4GPU PROPERTIES
