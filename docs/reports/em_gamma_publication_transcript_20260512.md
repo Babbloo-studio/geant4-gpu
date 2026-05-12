@@ -21,6 +21,7 @@ publication directory:
 | Isolation grep | `rg -n` plus the deny patterns | keeps the lane separated from production paths |
 | Build shape | `cmake -B build -DG4GPU_WITH_EM=ON` and `cmake --build build --target G4GPU test_em_klein_nishina -j2` | proves the scaffold still builds in EM mode |
 | CTest sweep | `ctest --test-dir build --output-on-failure -R '^g4gpu_em_'` | records the focused EM gate set |
+| Patch identity | `python3 scripts/verify_em_gamma_publication_patch_id.py` and `EM_GAMMA_PUBLICATION_PATCH_ID_OK` | proves the fallback patch encodes the current commit delta |
 | Holder/no-GPU boundary | `g4gpu_em_klein_nishina (Skipped)` | prevents treating a holder-node skip as GPU physics evidence |
 | Clean tree check | `git diff --check` | catches whitespace/patch-format drift |
 | Success stamp | `EM_GAMMA_CURRENT_<HEAD>_OK` | ties the transcript to the current commit |
