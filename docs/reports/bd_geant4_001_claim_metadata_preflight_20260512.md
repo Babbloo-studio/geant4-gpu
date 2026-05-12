@@ -1,59 +1,46 @@
-# BD-geant4-001 claim-metadata harness preflight (2026-05-12)
+# BD-geant4-001 claim metadata preflight (2026-05-12)
 
-Scope: one compact fail-closed preflight for moving `BD-geant4-001` toward the
-Phase 5 benchmark harness. This does not implement the Moller/Bhabha sampler,
-submit SLURM, run events, regenerate references, append result rows, edit NNBAR
-production code, or claim parity/speedup.
+Scope: compact fail-closed prerequisite iteration for `BD-geant4-001` after the
+L1-to-harness triage. This closes only the claim-level/metadata propagation
+prerequisite from `docs/reports/g4_bd001_l1_to_harness_triage.md`; it does not
+unblock a measurement.
 
-## Selected triage blocker
+## Claim-level and metadata propagation
 
-Chosen slice: claim-level / Geant4-version / notes propagation from
-`benchmarks.harness.run` into generated runner scripts and compute-node collect
-metadata.
+Current harness evidence:
 
-The earlier triage found that `run.py` accepted `--claim-level`,
-`--geant4-version`, and `--notes`, while the dry-run planning path constructed
-`RunnerSpec` without those fields. A BD-001 L2/L3 dry run could therefore print
-a script with default `CLAIM_LEVEL=L0`, weakening later result provenance.
+- `benchmarks/harness/run.py` imports `CLAIM_LEVELS` from the schema layer.
+- `_plan_scripts(...)` passes `claim_level`, `geant4_version`, and `notes` into
+  `RunnerSpec` instead of leaving rendered scripts at the default `L0` metadata.
+- `_validate_run_args(...)` rejects unknown claim levels, rejects non-empty notes
+  for `L3`, and rejects blank Geant4 version strings.
+- `benchmarks/harness/tests/test_run.py` includes a `BD-geant4-001` dry-run case
+  requiring `CLAIM_LEVEL=L2`, `GEANT4_VERSION=v11.2.2-bd001-preflight`, and the
+  rendered `--claim-level`, `--geant4-version`, and `--notes` collector args.
 
-## Implementation
+## Remaining BD-geant4-001 blockers
 
-- `benchmarks/harness/run.py` now passes `claim_level`, `geant4_version`, and
-  `notes` into each `RunnerSpec` created by `_plan_scripts(...)`.
-- `run.py` validates claim metadata before script rendering:
-  - `--claim-level` must be one of the schema-defined levels;
-  - L3 rows remain fail-closed if `--notes` is non-empty;
-  - `--geant4-version` must be non-empty.
-- `benchmarks/harness/tests/test_run.py` covers BD-001 dry-run script metadata
-  and invalid-claim fail-closed paths. The generated script now contains the
-  requested `CLAIM_LEVEL`, `GEANT4_VERSION`, and `NOTES` variables and forwards
-  them to the compute-node `--collect` command.
+This preflight does **not** resolve the other BD-001 blockers:
+
+1. no Moller/Bhabha inverse-sampler implementation branch exists;
+2. no optimized Geant4 fork/prefix builder path is proven;
+3. no `benchmarks/optimizations_registry.yaml` row exists;
+4. no sampler-level validation exists for sampled `x`, delta-ray kinetic energy,
+   angle, and downstream energy loss;
+5. the `PHYSICS_LIST` selector is still recorded in the script but not proven to
+   be honored by the W1/W2 binaries.
+
+Therefore `BD-geant4-001` remains fail-closed before any harness row or claim.
 
 ## Verification
 
-Commands run in `/projects/hep/fs10/shared/nnbar/billy/geant4-gpu`:
-
 ```bash
-PY=/projects/hep/fs10/shared/nnbar/billy/packages/hibeam_env/bin/python
-$PY -m py_compile benchmarks/harness/*.py
-$PY benchmarks/harness/tests/test_run.py
-$PY -m pytest benchmarks/harness/tests/test_run.py benchmarks/harness/tests/test_runner.py -q
-ctest --test-dir build --output-on-failure -R 'g4gpu_benchmark_harness_(run|runner)'
-git diff --check
+/projects/hep/fs10/shared/nnbar/billy/packages/hibeam_env/bin/python \
+  scripts/verify_bd001_claim_metadata_preflight.py
 ```
 
-Observed results: direct `test_run.py` printed `benchmark_harness_run: PASS`,
-pytest passed `21 passed`, focused CTest passed `2/2`, and `git diff --check`
-passed.
+Expected marker: `BD001_CLAIM_METADATA_PREFLIGHT_OK`.
 
-## Remaining BD-001 blockers
-
-`BD-geant4-001` remains fail-closed. Still required before any harness result:
-
-1. optimized Moller/Bhabha sampler branch or approved isolated adapter;
-2. optimized Geant4 source/prefix selection in the builder or equivalent proof;
-3. `benchmarks/optimizations_registry.yaml` entry for `BD-geant4-001`;
-4. sampler-specific validation observables for `x`, delta-ray kinetic energy,
-   angle, and downstream energy loss;
-5. physics-list selector proof for W1/W2 PL1/PL2;
-6. guarded SLURM smoke only after the dry-run/script audits above are complete.
+No SLURM submit/cancel/dry-run via `sbatch`, event run, result row, reference
+regeneration, NNBAR production edit, speedup claim, or parity claim is made by
+this preflight.
