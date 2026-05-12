@@ -64,3 +64,6 @@ interface has enough physics-table, secondary-buffer, and validation coverage.
 source-level stub markers and current interface constraints. A future
 implementation that removes a stub must update the report and verifier in the
 same commit, then provide the new validation evidence.
+
+The verifier is also registered as CTest target
+`g4gpu_em_deferred_process_gap` when CMake can find a Python 3 interpreter.

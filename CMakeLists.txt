@@ -38,6 +38,7 @@ if(DEFINED Geant4_USE_FILE)
   include(${Geant4_USE_FILE})
 endif()
 find_package(CUDAToolkit REQUIRED)
+find_package(Python3 COMPONENTS Interpreter QUIET)
 get_target_property(G4GPU_CUDART_INCLUDE_DIRS CUDA::cudart INTERFACE_INCLUDE_DIRECTORIES)
 list(GET G4GPU_CUDART_INCLUDE_DIRS 0 G4GPU_CUDART_INCLUDE_DIR)
 get_filename_component(G4GPU_CUDA_TOOLKIT_ROOT "${CUDAToolkit_BIN_DIR}/.." REALPATH)
@@ -131,6 +132,13 @@ if(G4GPU_WITH_EM)
   )
   add_test(NAME g4gpu_em_klein_nishina COMMAND ${CMAKE_BINARY_DIR}/tests/test_em_klein_nishina)
   set_tests_properties(g4gpu_em_klein_nishina PROPERTIES SKIP_RETURN_CODE 77)
+  if(Python3_Interpreter_FOUND)
+    add_test(
+      NAME g4gpu_em_deferred_process_gap
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_em_gamma_deferred_process_gap.py
+    )
+  endif()
 endif()
 
 add_executable(test_benchmark_manifest tests/test_benchmark_manifest.cc)
