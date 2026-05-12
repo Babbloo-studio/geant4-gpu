@@ -216,6 +216,11 @@ add_test(
   COMMAND ${G4GPU_BENCHMARK_PYTHON}
     ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_bd_geant4_001_harness_triage.py
 )
+add_test(
+  NAME g4gpu_benchmark_harness_line_caps
+  COMMAND ${G4GPU_BENCHMARK_PYTHON}
+    ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_benchmark_harness_line_caps.py
+)
 
 set(G4GPU_BENCHMARK_EVENTS
   gamma_100mev
