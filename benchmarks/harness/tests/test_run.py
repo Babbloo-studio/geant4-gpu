@@ -41,6 +41,12 @@ def _write_raw_pair(raw_dir: Path, seed: int) -> None:
     pq.write_table(_raw_table(1_000_000_000), raw_dir / f"optimized_seed_{seed}.parquet")
 
 
+def _write_registry(tmp_path: Path, text: str) -> Path:
+    path = tmp_path / "optimizations_registry.yaml"
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
 def test_module_help_exits_zero() -> None:
     proc = subprocess.run(
         [sys.executable, "-m", "benchmarks.harness.run", "--help"],
@@ -53,6 +59,7 @@ def test_module_help_exits_zero() -> None:
     assert proc.returncode == 0, proc.stdout
     assert "--generate-reference" in proc.stdout
     assert "--collect" in proc.stdout
+    assert "--require-registry" in proc.stdout
 
 
 def test_dry_run_w1_pl1_h3_prints_sbatch_without_side_effects(tmp_path: Path) -> None:
@@ -179,6 +186,82 @@ def test_invalid_claim_metadata_fails_closed(tmp_path: Path) -> None:
         )
     assert rc == 2
     assert "--notes must be empty for L3 rows" in err.getvalue()
+
+
+def test_require_registry_prefills_bd001_metadata(tmp_path: Path) -> None:
+    registry = _write_registry(
+        tmp_path,
+        """
+BD-geant4-001:
+  branch: lane/bd-geant4-001-moller-bhabha-inverse-sampler
+  cmake_flags: "-DG4GPU_BD001_MOLLER_BHABHA=ON"
+  description: "Moller/Bhabha inverse-sampler candidate"
+  depends_on: []
+  claim_level: L2
+  notes: "registry preflight only"
+""",
+    )
+    output = io.StringIO()
+    with redirect_stdout(output):
+        rc = run_main(
+            [
+                "--opt-id",
+                "BD-geant4-001",
+                "--require-registry",
+                "--registry",
+                str(registry),
+                "--workload",
+                "W1",
+                "--physics-list",
+                "PL2",
+                "--hw",
+                "H3",
+                "--n-seeds",
+                "1",
+                "--repo-root",
+                str(tmp_path / "repo"),
+            ]
+        )
+    text = output.getvalue()
+    assert rc == 0
+    assert "OPT_BRANCH=lane/bd-geant4-001-moller-bhabha-inverse-sampler" in text
+    assert "OPT_CMAKE_FLAGS=-DG4GPU_BD001_MOLLER_BHABHA=ON" in text
+    assert "CLAIM_LEVEL=L2" in text
+    assert "NOTES='registry preflight only'" in text
+
+
+def test_require_registry_missing_bd001_entry_fails_closed(tmp_path: Path) -> None:
+    registry = _write_registry(
+        tmp_path,
+        """
+BD-geant4-032:
+  branch: lane/bd-geant4-032
+  cmake_flags: ""
+  description: "different optimization"
+  depends_on: []
+""",
+    )
+    err = io.StringIO()
+    with redirect_stderr(err):
+        rc = run_main(
+            [
+                "--opt-id",
+                "BD-geant4-001",
+                "--require-registry",
+                "--registry",
+                str(registry),
+                "--workload",
+                "W1",
+                "--physics-list",
+                "PL1",
+                "--hw",
+                "H3",
+                "--repo-root",
+                str(tmp_path / "repo"),
+            ]
+        )
+    assert rc == 2
+    assert "lacks required entry 'BD-geant4-001'" in err.getvalue()
 
 
 def test_w5_w6_reference_dry_run_fail_closed_until_methodology_drivers_exist(tmp_path: Path) -> None:

@@ -27,12 +27,14 @@ import pyarrow.parquet as pq
 
 if __package__ in (None, ""):
     from builder import DEFAULT_GEANT4_PREFIX, DEFAULT_PYTHON, REPO_ROOT, BuildError, resolve_workload
+    from optimization_registry import DEFAULT_REGISTRY, OptimizationRegistryError, require_entry
     from parity import parity_gate
     from runner import DEFAULT_ACCOUNT, DEFAULT_CPUS, DEFAULT_PARTITION, DEFAULT_TIME
     from runner import RunnerError, RunnerSpec, render_sbatch, submit_sbatch, write_sbatch
     from schema import CLAIM_LEVELS, BenchmarkResultRow, read_rows, result_tag_for, utc_timestamp, write_rows
 else:
     from .builder import DEFAULT_GEANT4_PREFIX, DEFAULT_PYTHON, REPO_ROOT, BuildError, resolve_workload
+    from .optimization_registry import DEFAULT_REGISTRY, OptimizationRegistryError, require_entry
     from .parity import parity_gate
     from .runner import DEFAULT_ACCOUNT, DEFAULT_CPUS, DEFAULT_PARTITION, DEFAULT_TIME
     from .runner import RunnerError, RunnerSpec, render_sbatch, submit_sbatch, write_sbatch
@@ -83,6 +85,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
     try:
+        _apply_registry_defaults(args)
         if args.collect:
             return _collect(args)
         planned = _plan_scripts(args)
@@ -99,7 +102,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             job_id = submit_sbatch(item.path, sbatch=args.sbatch)
             print(f"{item.label} {job_id}")
         return 0
-    except (BuildError, RunnerError, RunError, ValueError) as exc:
+    except (BuildError, OptimizationRegistryError, RunnerError, RunError, ValueError) as exc:
         print(f"run error: {exc}", file=sys.stderr)
         return 2
 
@@ -109,6 +112,12 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--opt-id", help="optimization identifier, e.g. BD-geant4-032 or vanilla")
     parser.add_argument("--opt-branch", help="optimized branch/commit; defaults to opt-id for vanilla references")
     parser.add_argument("--opt-cmake-flags", default="", help="CMake flags recorded in result rows")
+    parser.add_argument("--registry", type=Path, default=DEFAULT_REGISTRY, help="optimization registry YAML path")
+    parser.add_argument(
+        "--require-registry",
+        action="store_true",
+        help="fail closed unless --opt-id has a validated registry entry; fill omitted metadata from that row",
+    )
     parser.add_argument("--workload", nargs="+", help="one or more workload IDs such as W1 or gamma_100mev")
     parser.add_argument("--physics-list", nargs="+", help="one or more physics-list IDs such as PL1")
     parser.add_argument("--hw", nargs="+", help="one or more hardware IDs such as H3")
@@ -141,6 +150,32 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--geant4-version", default=DEFAULT_GEANT4_VERSION)
     parser.add_argument("--notes", default="")
     return parser
+
+
+def _apply_registry_defaults(args: argparse.Namespace) -> None:
+    """Validate and apply optimization-registry metadata when requested."""
+
+    if not args.require_registry:
+        return
+    if args.generate_reference:
+        raise RunError("--require-registry is only valid for optimized result runs, not reference generation")
+    if not args.opt_id:
+        raise RunError("--require-registry requires --opt-id")
+    entry = require_entry(args.opt_id, args.registry)
+    if args.opt_branch and args.opt_branch != entry.branch:
+        raise RunError(
+            f"--opt-branch {args.opt_branch!r} conflicts with registry branch {entry.branch!r}"
+        )
+    if args.opt_cmake_flags and args.opt_cmake_flags != entry.cmake_flags:
+        raise RunError("--opt-cmake-flags conflicts with registry cmake_flags")
+    if entry.claim_level and args.claim_level != "L0" and args.claim_level != entry.claim_level:
+        raise RunError(f"--claim-level {args.claim_level!r} conflicts with registry claim_level {entry.claim_level!r}")
+    if entry.notes and args.notes and args.notes != entry.notes:
+        raise RunError("--notes conflicts with registry notes")
+    args.opt_branch = args.opt_branch or entry.branch
+    args.opt_cmake_flags = args.opt_cmake_flags or entry.cmake_flags
+    args.claim_level = entry.claim_level or args.claim_level
+    args.notes = args.notes or entry.notes
 
 
 def _collect(args: argparse.Namespace) -> int:
