@@ -141,6 +141,11 @@ EXPECTED = {
         "g4gpu_em_validation_fixture_contract",
         "validation fixture contract",
     ),
+    "em_gamma_verifier_script_boundary_20260512.md": Coverage(
+        "scripts/verify_em_gamma_verifier_script_boundary.py",
+        "g4gpu_em_verifier_script_boundary",
+        "verifier script read-only boundary",
+    ),
 }
 
 

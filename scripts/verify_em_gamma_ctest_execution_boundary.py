@@ -22,6 +22,7 @@ EXPECTED_SCRIPT_TESTS = {
     "g4gpu_em_report_coverage": "scripts/verify_em_gamma_report_coverage.py",
     "g4gpu_em_lane_objective_audit": "scripts/verify_em_gamma_lane_objective_audit.py",
     "g4gpu_em_claim_boundary": "scripts/verify_em_gamma_claim_boundary.py",
+    "g4gpu_em_verifier_script_boundary": "scripts/verify_em_gamma_verifier_script_boundary.py",
     "g4gpu_em_runtime_sbatch_contract": "scripts/verify_em_gamma_runtime_sbatch.py",
     "g4gpu_em_runtime_gpu_report": "scripts/verify_em_gamma_runtime_gpu_report.py",
     "g4gpu_em_photoelectric_contract": "scripts/verify_em_gamma_photoelectric_contract.py",

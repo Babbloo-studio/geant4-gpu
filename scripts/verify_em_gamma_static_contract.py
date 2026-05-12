@@ -92,6 +92,8 @@ def main() -> int:
         "scripts/verify_em_gamma_lane_objective_audit.py",
         "NAME g4gpu_em_claim_boundary",
         "scripts/verify_em_gamma_claim_boundary.py",
+        "NAME g4gpu_em_verifier_script_boundary",
+        "scripts/verify_em_gamma_verifier_script_boundary.py",
         "NAME g4gpu_em_runtime_sbatch_contract",
         "scripts/verify_em_gamma_runtime_sbatch.py",
         "NAME g4gpu_em_runtime_gpu_report",

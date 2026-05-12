@@ -184,6 +184,11 @@ if(G4GPU_WITH_EM)
               ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_em_gamma_claim_boundary.py
     )
     add_test(
+      NAME g4gpu_em_verifier_script_boundary
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_em_gamma_verifier_script_boundary.py
+    )
+    add_test(
       NAME g4gpu_em_runtime_sbatch_contract
       COMMAND ${Python3_EXECUTABLE}
               ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_em_gamma_runtime_sbatch.py
