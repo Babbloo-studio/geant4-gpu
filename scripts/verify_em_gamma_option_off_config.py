@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import subprocess
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 CMAKE = ROOT / "CMakeLists.txt"
@@ -12,7 +13,6 @@ STATIC = ROOT / "scripts/verify_em_gamma_static_contract.py"
 CTEST_BOUNDARY = ROOT / "scripts/verify_em_gamma_ctest_execution_boundary.py"
 REPORT_COVERAGE = ROOT / "scripts/verify_em_gamma_report_coverage.py"
 REPORT = ROOT / "docs/reports/em_gamma_option_off_config_20260512.md"
-BUILD = ROOT / "build_em_off_config_verify"
 REFERENCE_CACHE = ROOT / "build/CMakeCache.txt"
 SELF = Path(__file__)
 
@@ -58,27 +58,29 @@ def run(args: list[str]) -> str:
 
 
 def main() -> int:
-    cmake_args = [
-        "cmake",
-        "-S",
-        str(ROOT),
-        "-B",
-        str(BUILD),
-        "-DG4GPU_WITH_EM=OFF",
-        "-DG4GPU_WITH_OPTICAL=OFF",
-        "-DG4GPU_WITH_RTX=OFF",
-    ]
-    for key in ("CMAKE_CUDA_COMPILER", "CUDAToolkit_ROOT", "Geant4_DIR"):
-        if value := cache_value(key):
-            cmake_args.append(f"-D{key}={value}")
-    configure = run(cmake_args)
-    if "G4GPU_WITH_EM" not in text(BUILD / "CMakeCache.txt"):
-        raise SystemExit("OFF build cache does not record G4GPU_WITH_EM")
-    require(BUILD / "CMakeCache.txt", "G4GPU_WITH_EM:BOOL=OFF")
+    with tempfile.TemporaryDirectory(prefix="g4gpu-em-off-") as tmpdir:
+        build = Path(tmpdir) / "build"
+        cmake_args = [
+            "cmake",
+            "-S",
+            str(ROOT),
+            "-B",
+            str(build),
+            "-DG4GPU_WITH_EM=OFF",
+            "-DG4GPU_WITH_OPTICAL=OFF",
+            "-DG4GPU_WITH_RTX=OFF",
+        ]
+        for key in ("CMAKE_CUDA_COMPILER", "CUDAToolkit_ROOT", "Geant4_DIR"):
+            if value := cache_value(key):
+                cmake_args.append(f"-D{key}={value}")
+        configure = run(cmake_args)
+        if "G4GPU_WITH_EM" not in text(build / "CMakeCache.txt"):
+            raise SystemExit("OFF build cache does not record G4GPU_WITH_EM")
+        require(build / "CMakeCache.txt", "G4GPU_WITH_EM:BOOL=OFF")
 
-    run(["cmake", "--build", str(BUILD), "--target", "G4GPU", "-j2"])
-    targets = run(["cmake", "--build", str(BUILD), "--target", "help"])
-    ctest_list = run(["ctest", "--test-dir", str(BUILD), "-N"])
+        run(["cmake", "--build", str(build), "--target", "G4GPU", "-j2"])
+        targets = run(["cmake", "--build", str(build), "--target", "help"])
+        ctest_list = run(["ctest", "--test-dir", str(build), "-N"])
     combined = configure + targets + ctest_list
     for forbidden in (
         "g4gpu_em_",
@@ -99,7 +101,7 @@ def main() -> int:
 
     for marker in (
         "G4GPU_WITH_EM=OFF",
-        "build_em_off_config_verify",
+        "temporary build tree",
         "does not authorize SLURM submission",
         "does not make speedup, parity, or\nproduction-readiness claims",
     ):

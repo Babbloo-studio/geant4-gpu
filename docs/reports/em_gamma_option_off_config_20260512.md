@@ -9,9 +9,10 @@ events, generate benchmark rows, or claim physics parity.
 ## Required evidence
 
 The verifier `scripts/verify_em_gamma_option_off_config.py` configures a
-separate `build_em_off_config_verify` tree with `G4GPU_WITH_EM=OFF`,
+separate temporary build tree with `G4GPU_WITH_EM=OFF`,
 `G4GPU_WITH_OPTICAL=OFF`, and `G4GPU_WITH_RTX=OFF`; builds only the `G4GPU`
-library target; and inspects `ctest -N` plus build-target help output.
+library target; inspects `ctest -N` plus build-target help output; and removes
+the temporary tree when the check exits.
 
 The gate fails if the OFF build exposes any `g4gpu_em_*` CTest target, the
 standalone `test_em_klein_nishina` target, or an ON-valued `G4GPU_WITH_EM` cache
