@@ -44,6 +44,10 @@ def main() -> int:
         "audited subject head",
         "ac6a00e1d9d31817eb064f292f2e7fda3f2a9d62",
         "fork_ref=ac6a00e1d9d31817eb064f292f2e7fda3f2a9d62",
+        "Current-head\nartifact freshness is delegated to `g4gpu_em_publication_artifacts`",
+        "head-sensitive and must fail until each later commit",
+        "Current-head publication freshness",
+        "g4gpu_em_publication_artifacts",
         "EM_GAMMA_CURRENT_AC6A00E_OK",
         "EM_GAMMA_RUNTIME_GATE_OK",
         "g4gpu_em_klein_nishina skipped",
@@ -72,6 +76,8 @@ def main() -> int:
     for marker in (
         "NAME g4gpu_em_publication_audit",
         "scripts/verify_em_gamma_publication_audit.py",
+        "NAME g4gpu_em_publication_artifacts",
+        "scripts/verify_em_gamma_publication_artifacts.py",
     ):
         require(CMAKE, marker)
 

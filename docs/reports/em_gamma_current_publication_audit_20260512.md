@@ -2,12 +2,16 @@
 
 ## Scope
 
-This never-idle audit refreshes the evidence map for the EM/gamma compact unit at
-audited subject head `ac6a00e1d9d31817eb064f292f2e7fda3f2a9d62`
+This never-idle audit records the historical evidence map for the EM/gamma compact
+unit at audited subject head `ac6a00e1d9d31817eb064f292f2e7fda3f2a9d62`
 (`docs(em): audit shared preflight chain`). The fork ref
-`Babbloo-studio/geant4-gpu:lane/g4gpu-em-gamma` now matches this head; fallback
-bundle, patch, verifier transcript, and checksum artifacts are also present
-under `/projects/hep/fs10/shared/nnbar/billy/g4gpu-em-gamma-publication/`.
+`Babbloo-studio/geant4-gpu:lane/g4gpu-em-gamma` matched this head when the
+audit was written; fallback bundle, patch, verifier transcript, and checksum
+artifacts are also present under
+`/projects/hep/fs10/shared/nnbar/billy/g4gpu-em-gamma-publication/`. Current-head
+artifact freshness is delegated to `g4gpu_em_publication_artifacts`, which is
+head-sensitive and must fail until each later commit has a fresh bundle, patch,
+verifier transcript, and checksum manifest.
 
 No new SLURM command, GPU runtime test, detector/event run, reference
 generation, NNBAR production edit, parity claim, speedup claim, ABI migration,
@@ -22,8 +26,9 @@ or deferred-process implementation was performed by this audit.
 | Deferred stubs remain fail-closed | `scripts/verify_em_gamma_stub_fail_closed.py` checks `SamplePhotoelectric`, `SamplePair`, and `SampleBremsstrahlung` keep `out = {};`, TODO markers, `return;`, and no mutation hooks. | PASS |
 | Shared preflights are indexed | `docs/reports/em_gamma_preflight_contract_index_20260512.md` indexes table owner, secondary buffer, RNG stream, process selector, and status-code vocabulary preflights. | PASS |
 | Preflight chain has completion audit | `docs/reports/em_gamma_preflight_chain_audit_20260512.md` maps prompt requirements to concrete artifacts and keeps the remaining implementation blockers explicit. | PASS |
-| Current fallback publication exists | `lane-g4gpu-em-gamma-ac6a00e.bundle`, `patches/0019-em-gamma-preflight-chain-audit-ac6a00e.patch`, `BUNDLE_VERIFY_ac6a00e.txt`, and `SHA256SUMS-ac6a00e-preflight-chain-audit` exist in the publication directory. | PASS |
-| Current verifier covers the hardening chain | `check_em_gamma_current_ac6a00e.latest.txt` ends `EM_GAMMA_CURRENT_AC6A00E_OK` after direct preflight-chain/index/status/static verifiers, line caps, isolation grep, focused EM CTest, and `git diff --check`. | PASS |
+| Historical fallback publication exists | `lane-g4gpu-em-gamma-ac6a00e.bundle`, `patches/0019-em-gamma-preflight-chain-audit-ac6a00e.patch`, `BUNDLE_VERIFY_ac6a00e.txt`, and `SHA256SUMS-ac6a00e-preflight-chain-audit` exist in the publication directory. | PASS |
+| Historical verifier covers the hardening chain | `check_em_gamma_current_ac6a00e.latest.txt` ends `EM_GAMMA_CURRENT_AC6A00E_OK` after direct preflight-chain/index/status/static verifiers, line caps, isolation grep, focused EM CTest, and `git diff --check`. | PASS |
+| Current-head publication freshness | `g4gpu_em_publication_artifacts` now checks the live head dynamically and requires a fresh current-head bundle, patch, verifier transcript, and checksum manifest. | PASS |
 | No isolation leak | The current verifier chain greps for forbidden NNBAR detector/reconstruction strings across the touched report/verifier/CMake and G4GPU `include`, `src`, and `tests` surfaces. | PASS |
 | No false physics/performance claim | Reports and verifiers preserve explicit boundaries: no detector/event workload, output-row generation, physics-parity claim, speedup claim, ABI migration, or deferred-process implementation. | PASS |
 
