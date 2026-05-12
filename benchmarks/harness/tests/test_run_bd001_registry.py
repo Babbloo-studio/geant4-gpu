@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from contextlib import redirect_stderr, redirect_stdout
+import hashlib
 import io
 from pathlib import Path
 import subprocess
@@ -58,7 +59,10 @@ def _bd001_source_repo(tmp_path: Path, branch: str = "lane/bd-geant4-001-moller-
 def _bd001_review_artifact(tmp_path: Path, *, branch: str, commit: str, reviewer: str = "reviewer-a") -> Path:
     artifact = tmp_path / "bd001-review.md"
     artifact.write_text(
-        f"BD-geant4-001 {branch} {commit} approved {reviewer}\n",
+        f"BD-geant4-001 {branch} approved {reviewer}\n"
+        f"reviewed_commit {commit} supersedes source 4ac150b handoff 782d84c\n"
+        "branch proof source/processes/electromagnetic/standard/src/G4MollerBhabhaModel.cc "
+        "G4GPU_BD001_MOLLER_BHABHA\n",
         encoding="utf-8",
     )
     return artifact
@@ -165,6 +169,7 @@ def test_require_registry_prefills_bd001_metadata(tmp_path: Path) -> None:
     branch = "lane/bd-geant4-001-moller-bhabha-inverse-sampler"
     source_repo, commit = _bd001_source_repo(tmp_path, branch)
     review_artifact = _bd001_review_artifact(tmp_path, branch=branch, commit=commit)
+    review_digest = hashlib.sha256(review_artifact.read_bytes()).hexdigest()
     registry = _write_registry(
         tmp_path,
         f"""
@@ -180,6 +185,7 @@ BD-geant4-001:
   reviewed_by: [reviewer-a]
   reviewed_commit: "{commit}"
   review_artifact: "{review_artifact}"
+  review_artifact_sha256: "{review_digest}"
 """,
     )
     output = io.StringIO()

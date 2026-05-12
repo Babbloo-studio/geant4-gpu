@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 import subprocess
 import sys
@@ -41,6 +42,7 @@ def _repo(tmp: Path) -> tuple[Path, str]:
 
 def _registry(tmp: Path, commit: str, artifact: Path) -> Path:
     path = tmp / "registry.yaml"
+    digest = hashlib.sha256(artifact.read_bytes()).hexdigest()
     path.write_text(
         "BD-geant4-001:\n"
         "  branch: lane/bd001\n"
@@ -51,14 +53,20 @@ def _registry(tmp: Path, commit: str, artifact: Path) -> Path:
         "  review_status: approved\n"
         "  reviewed_by: [reviewer-a]\n"
         f"  reviewed_commit: \"{commit}\"\n"
-        f"  review_artifact: \"{artifact}\"\n",
+        f"  review_artifact: \"{artifact}\"\n"
+        f"  review_artifact_sha256: \"{digest}\"\n",
         encoding="utf-8",
     )
     return path
 
 
 def _artifact(path: Path, commit: str) -> Path:
-    path.write_text(f"BD-geant4-001 lane/bd001 {commit} approved reviewer-a\n", encoding="utf-8")
+    path.write_text(
+        "BD-geant4-001 lane/bd001 approved reviewer-a\n"
+        f"reviewed_commit {commit} supersedes source 4ac150b handoff 782d84c\n"
+        "branch proof source/processes/electromagnetic/standard/src/G4MollerBhabhaModel.cc G4GPU_BD001\n",
+        encoding="utf-8",
+    )
     return path
 
 

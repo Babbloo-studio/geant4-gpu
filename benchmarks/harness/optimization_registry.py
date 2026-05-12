@@ -28,6 +28,7 @@ OPTIONAL_FIELDS = (
     "reviewed_by",
     "reviewed_commit",
     "review_artifact",
+    "review_artifact_sha256",
 )
 ALLOWED_FIELDS = frozenset((*REQUIRED_FIELDS, *OPTIONAL_FIELDS))
 
@@ -52,6 +53,7 @@ class OptimizationRegistryEntry:
     reviewed_by: tuple[str, ...] = ()
     reviewed_commit: str | None = None
     review_artifact: str | None = None
+    review_artifact_sha256: str | None = None
 
 
 def load_registry(path: str | Path = DEFAULT_REGISTRY) -> dict[str, OptimizationRegistryEntry]:
@@ -130,6 +132,11 @@ def validate_entry(opt_id: str, value: Any) -> OptimizationRegistryEntry:
         review_artifact = _non_empty_string(opt_id, review_artifact, "review_artifact")
         if not Path(review_artifact).is_absolute():
             raise OptimizationRegistryError(f"{opt_id}: review_artifact must be an absolute path")
+    review_artifact_sha256 = value.get("review_artifact_sha256")
+    if review_artifact_sha256 is not None:
+        review_artifact_sha256 = _non_empty_string(opt_id, review_artifact_sha256, "review_artifact_sha256")
+        if not re.fullmatch(r"[0-9a-f]{64}", review_artifact_sha256):
+            raise OptimizationRegistryError(f"{opt_id}: review_artifact_sha256 must be a 64-character sha256")
     if claim_level == "L3" and notes:
         raise OptimizationRegistryError(f"{opt_id}: notes must be empty for L3 registry rows")
     return OptimizationRegistryEntry(
@@ -145,6 +152,7 @@ def validate_entry(opt_id: str, value: Any) -> OptimizationRegistryEntry:
         reviewed_by=reviewed_by,
         reviewed_commit=reviewed_commit,
         review_artifact=review_artifact,
+        review_artifact_sha256=review_artifact_sha256,
     )
 
 

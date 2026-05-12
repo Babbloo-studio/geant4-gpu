@@ -24,6 +24,9 @@ from benchmarks.harness.sampler_observables import BD001_REQUIRED_OBSERVABLES  #
 SOURCE_REPO = Path("/projects/hep/fs10/shared/nnbar/billy/geant4-fork")
 REPORT = ROOT / "docs/reports/bd_geant4_001_smoke_readiness_20260512.md"
 CMAKE = ROOT / "CMakeLists.txt"
+REVIEW_GATE = ROOT / "benchmarks/harness/bd001_review_gate.py"
+BRANCH_GATE = ROOT / "benchmarks/harness/bd001_branch_gate.py"
+REGISTRY = ROOT / "benchmarks/harness/optimization_registry.py"
 RESULT_ROW = ROOT / "benchmarks/results/results.parquet"
 REQUIRED_OBSERVABLES = {
     "sampler_x",
@@ -74,7 +77,20 @@ def main() -> int:
         BD001ReviewGateError,
         "review_status must be 'approved'",
     )
+    for path, markers in {
+        REVIEW_GATE: (
+            "review_artifact_sha256",
+            "BD001_SOURCE_COMMIT",
+            "BD001_HANDOFF_COMMIT",
+            "PLACEHOLDER_OR_NEGATED_REVIEW_TOKENS",
+        ),
+        BRANCH_GATE: ("source/processes/electromagnetic/standard/src/G4MollerBhabhaModel.cc", "BD001_FALLBACK_TOKEN"),
+        REGISTRY: ("review_artifact_sha256", "64-character sha256"),
+    }.items():
+        for marker in markers:
+            require_text(path, marker)
     print("BD001_APPROVED_REVIEW_ARTIFACT_BLOCKED_OK")
+    print("BD001_APPROVED_REVIEW_ARTIFACT_GATE_OK")
 
     expect_error(
         lambda: bd001_branch_gate(DEFAULT_REGISTRY, source_repo=SOURCE_REPO, require_prefix_config=True),
