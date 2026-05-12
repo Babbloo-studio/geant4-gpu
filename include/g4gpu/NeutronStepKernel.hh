@@ -1,43 +1,41 @@
 #pragma once
 
+// GPU neutron elastic-scattering scaffold interface.
+//
+// Contract:
+// - TrackSOA fields are in millimetres, MeV, nanoseconds, PDG codes, and status
+//   values matching G4GPUTrackBuffer.hh.
+// - MaterialData is accepted to preserve the process-kernel launch shape, but
+//   isotope/material-dependent neutron physics is intentionally fail-closed.
+// - curandState supplies one RNG state per active track when stochastic device
+//   scattering is requested; a null RNG uses a deterministic CPU-safe fallback.
+// - This scaffold does not invoke Geant4 application code or any production
+//   detector data path.
+
 #include "g4gpu/G4GPUCudaCompat.hh"
 #include "g4gpu/G4GPUTrackBuffer.hh"
+#include "g4gpu/MaterialData.hh"
 
 #if defined(__CUDACC__)
+#  include <curand_kernel.h>
 #  define G4GPU_NEUTRON_HOST_DEVICE __host__ __device__
 #else
+struct curandStateXORWOW;
+using curandState = curandStateXORWOW;
 #  define G4GPU_NEUTRON_HOST_DEVICE
 #endif
 
 namespace g4gpu {
 
-// Compact status codes are kept as integers so the helper can be used from
-// host and device code without depending on exceptions or CUDA-side RTTI.
-enum class NeutronElasticStatus : int {
-    ok = 0,
-    invalid_target_mass_ratio = 1,
-};
-
-struct NeutronElasticResult {
-    float incident_energy_mev = 0.0f;
-    float target_mass_ratio = 0.0f;
-    float cos_theta_cm = 0.0f;
-    float energy_fraction = 0.0f;
-    float outgoing_energy_mev = 0.0f;
-    NeutronElasticStatus status = NeutronElasticStatus::invalid_target_mass_ratio;
-};
-
-// Deterministic lab-frame neutron elastic kinematics for a stationary target.
-// A is the target-to-neutron mass ratio. cos_theta_cm is clamped to [-1, 1]
-// only for numerical safety. Invalid A <= 0 is reported in the result status.
-G4GPU_NEUTRON_HOST_DEVICE NeutronElasticResult ComputeNeutronElasticKinematics(
-    float incident_energy_mev,
-    float target_mass_ratio_A,
-    float cos_theta_cm) noexcept;
-
-G4GPU_NEUTRON_HOST_DEVICE float NeutronElasticOutgoingEnergyFraction(
-    float target_mass_ratio_A,
-    float cos_theta_cm) noexcept;
+// Rotate an incident unit direction by a center-of-mass scattering direction.
+// The helper is host/device so deterministic tests can verify the kinematic
+// scaffold without requiring a CUDA-capable runtime.
+G4GPU_NEUTRON_HOST_DEVICE float3 NeutronElasticScatterDirection(
+    float incident_dx,
+    float incident_dy,
+    float incident_dz,
+    float cos_theta_cm,
+    float phi_rad) noexcept;
 
 // Explicit scaffold notice used by tests and handoffs: this compact kernel is
 // not a Geant4 neutron-physics parity statement and encodes no speed claim.
@@ -45,9 +43,9 @@ const char* NeutronStepKernelScaffoldNotice() noexcept;
 
 void LaunchNeutronStepKernel(
     TrackSOA* d_tracks,
+    curandState* d_rng,
+    const MaterialData* d_mats,
     int n_tracks,
-    float target_mass_ratio_A,
-    float cos_theta_cm,
     cudaStream_t stream = nullptr);
 
 }  // namespace g4gpu

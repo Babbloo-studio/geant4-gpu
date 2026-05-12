@@ -38,6 +38,17 @@ if(DEFINED Geant4_USE_FILE)
   include(${Geant4_USE_FILE})
 endif()
 find_package(CUDAToolkit REQUIRED)
+set(G4GPU_TEST_RPATH "${CMAKE_BINARY_DIR}")
+if(TARGET CUDA::cudart)
+  get_target_property(_g4gpu_cudart_path CUDA::cudart IMPORTED_LOCATION)
+  if(NOT _g4gpu_cudart_path)
+    get_target_property(_g4gpu_cudart_path CUDA::cudart IMPORTED_LOCATION_RELEASE)
+  endif()
+  if(_g4gpu_cudart_path)
+    get_filename_component(_g4gpu_cudart_dir "${_g4gpu_cudart_path}" DIRECTORY)
+    list(APPEND G4GPU_TEST_RPATH "${_g4gpu_cudart_dir}")
+  endif()
+endif()
 
 if(G4GPU_WITH_OPTICAL OR G4GPU_WITH_RTX)
   find_package(OptiX REQUIRED)
@@ -108,16 +119,18 @@ if(G4GPU_WITH_MUON)
 endif()
 
 if(G4GPU_WITH_NEUTRON)
-  add_executable(g4gpu_neutron_elastic_kinematics
-    tests/test_neutron_elastic_kinematics.cu
+  add_executable(g4gpu_neutron_elastic_scatter
+    tests/test_neutron_elastic_scatter.cu
   )
-  target_link_libraries(g4gpu_neutron_elastic_kinematics PRIVATE G4GPU)
-  set_target_properties(g4gpu_neutron_elastic_kinematics
-    PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+  target_link_libraries(g4gpu_neutron_elastic_scatter PRIVATE G4GPU)
+  set_target_properties(g4gpu_neutron_elastic_scatter
+    PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+      BUILD_RPATH "${G4GPU_TEST_RPATH}"
   )
   add_test(
-    NAME g4gpu_neutron_elastic_kinematics
-    COMMAND ${CMAKE_BINARY_DIR}/tests/g4gpu_neutron_elastic_kinematics
+    NAME g4gpu_neutron_elastic_scatter
+    COMMAND ${CMAKE_BINARY_DIR}/tests/g4gpu_neutron_elastic_scatter
   )
 endif()
 
