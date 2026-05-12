@@ -3,9 +3,9 @@
 
 This module only writes and optionally submits an ``sbatch`` script.  It never
 executes a Geant4 benchmark binary directly on the LUNARC holder node.  The
-generated script performs the compute-node work and then calls the future
-``benchmarks.harness.run --collect`` entry point to append the Parquet result
-row.
+generated script performs the compute-node work and then calls
+``benchmarks.harness.run --collect`` to append the Parquet result row or update
+the vanilla reference manifest.
 """
 
 from __future__ import annotations
@@ -58,6 +58,11 @@ class RunnerSpec:
     cpus_per_task: int = DEFAULT_CPUS
     raw_root: Path | None = None
     results_path: Path | None = None
+    opt_cmake_flags: str = ""
+    reference_mode: bool = False
+    claim_level: str = "L0"
+    geant4_version: str = "v11.2.2"
+    notes: str = ""
 
 
 def render_sbatch(spec: RunnerSpec) -> str:
@@ -75,6 +80,32 @@ def render_sbatch(spec: RunnerSpec) -> str:
     job_name = _sanitize(f"g4gpu-{spec.opt_id}-{workload.workload_id}")[:48]
     seed_words = " ".join(str(seed) for seed in spec.seeds)
 
+    lines = _render_common_header(
+        spec,
+        raw_root,
+        results_path,
+        vanilla_bin,
+        opt_bin,
+        output_dir,
+        job_name,
+        workload.workload_id,
+        seed_words,
+    )
+    lines.extend(_render_reference_body() if spec.reference_mode else _render_result_body())
+    return "\n".join(lines)
+
+
+def _render_common_header(
+    spec: RunnerSpec,
+    raw_root: Path,
+    results_path: Path,
+    vanilla_bin: Path,
+    opt_bin: Path,
+    output_dir: Path,
+    job_name: str,
+    workload_id: str,
+    seed_words: str,
+) -> list[str]:
     lines = [
         "#!/usr/bin/env bash",
         f"#SBATCH --job-name={job_name}",
@@ -104,7 +135,11 @@ def render_sbatch(spec: RunnerSpec) -> str:
         f"RESULTS_PATH={_quote(results_path)}",
         f"OPT_ID={_quote(spec.opt_id)}",
         f"OPT_BRANCH={_quote(spec.opt_branch)}",
-        f"WORKLOAD_ID={_quote(workload.workload_id)}",
+        f"OPT_CMAKE_FLAGS={_quote(spec.opt_cmake_flags)}",
+        f"CLAIM_LEVEL={_quote(spec.claim_level)}",
+        f"GEANT4_VERSION={_quote(spec.geant4_version)}",
+        f"NOTES={_quote(spec.notes)}",
+        f"WORKLOAD_ID={_quote(workload_id)}",
         f"PHYSICS_LIST={_quote(spec.physics_list)}",
         f"HW_ID={_quote(spec.hw_id)}",
         f"N_EVENTS={int(spec.n_events)}",
@@ -130,12 +165,19 @@ def render_sbatch(spec: RunnerSpec) -> str:
         'cd "${REPO_ROOT}"',
         'mkdir -p "${RAW_ROOT}" "$(dirname "${RESULTS_PATH}")"',
         '[[ -x "${VANILLA_BIN}" ]] || { echo "missing executable vanilla binary: ${VANILLA_BIN}" >&2; exit 2; }',
-        '[[ -x "${OPTIMIZED_BIN}" ]] || { echo "missing executable optimized binary: ${OPTIMIZED_BIN}" >&2; exit 2; }',
-        (
-            '"${PYTHON_BIN}" -m benchmarks.harness.run --collect --collect-check >/dev/null 2>&1 || '
-            '{ echo "COLLECTOR_NOT_IMPLEMENTED: benchmarks.harness.run --collect is still a stub" >&2; exit 2; }'
-        ),
+        '"${PYTHON_BIN}" -m benchmarks.harness.run --collect --collect-check',
         "",
+    ]
+    if not spec.reference_mode:
+        lines.append(
+            '[[ -x "${OPTIMIZED_BIN}" ]] || { echo "missing executable optimized binary: ${OPTIMIZED_BIN}" >&2; exit 2; }'
+        )
+        lines.append("")
+    return lines
+
+
+def _render_result_body() -> list[str]:
+    return [
         "run_one() {",
         '  local variant="$1"',
         '  local binary="$2"',
@@ -155,6 +197,7 @@ def render_sbatch(spec: RunnerSpec) -> str:
         '"${PYTHON_BIN}" -m benchmarks.harness.run --collect \\',
         '  --opt-id "${OPT_ID}" \\',
         '  --opt-branch "${OPT_BRANCH}" \\',
+        '  --opt-cmake-flags "${OPT_CMAKE_FLAGS}" \\',
         '  --workload "${WORKLOAD_ID}" \\',
         '  --physics-list "${PHYSICS_LIST}" \\',
         '  --hw "${HW_ID}" \\',
@@ -162,11 +205,44 @@ def render_sbatch(spec: RunnerSpec) -> str:
         '  --seeds "${SEEDS[@]}" \\',
         '  --slurm-job-id "${SLURM_JOB_ID}" \\',
         '  --raw-dir "${RAW_ROOT}" \\',
-        '  --results "${RESULTS_PATH}"',
+        '  --results "${RESULTS_PATH}" \\',
+        '  --claim-level "${CLAIM_LEVEL}" \\',
+        '  --geant4-version "${GEANT4_VERSION}" \\',
+        '  --notes "${NOTES}"',
         "",
     ]
-    return "\n".join(lines)
 
+
+def _render_reference_body() -> list[str]:
+    return [
+        "run_reference() {",
+        '  local seed="$1"',
+        '  local out="${RAW_ROOT}/seed_${seed}.parquet"',
+        '  local log="${RAW_ROOT}/seed_${seed}.txt"',
+        '  echo "REFERENCE seed=${seed} binary=${VANILLA_BIN}"',
+        '  "${VANILLA_BIN}" --events "${N_EVENTS}" --commit "reference_${WORKLOAD_ID}_${PHYSICS_LIST}_seed_${seed}" --output "${out}" >"${log}" 2>&1',
+        "}",
+        "",
+        'for seed in "${SEEDS[@]}"; do',
+        '  export G4GPU_HARNESS_SEED="${seed}"',
+        '  run_reference "${seed}"',
+        "done",
+        "",
+        '"${PYTHON_BIN}" -m benchmarks.harness.run --collect --generate-reference \\',
+        '  --opt-id "${OPT_ID}" \\',
+        '  --opt-branch "${OPT_BRANCH}" \\',
+        '  --workload "${WORKLOAD_ID}" \\',
+        '  --physics-list "${PHYSICS_LIST}" \\',
+        '  --hw "${HW_ID}" \\',
+        '  --n-events "${N_EVENTS}" \\',
+        '  --seeds "${SEEDS[@]}" \\',
+        '  --slurm-job-id "${SLURM_JOB_ID}" \\',
+        '  --raw-dir "${RAW_ROOT}" \\',
+        '  --repo-root "${REPO_ROOT}" \\',
+        '  --results "${RESULTS_PATH}" \\',
+        '  --geant4-version "${GEANT4_VERSION}"',
+        "",
+    ]
 
 def write_sbatch(spec: RunnerSpec, script_path: str | Path) -> Path:
     """Write ``spec`` as an executable sbatch script and return its path."""
@@ -228,6 +304,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         cpus_per_task=args.cpus_per_task,
         raw_root=args.raw_root,
         results_path=args.results_path,
+        opt_cmake_flags=args.opt_cmake_flags,
+        reference_mode=args.reference_mode,
+        claim_level=args.claim_level,
+        geant4_version=args.geant4_version,
+        notes=args.notes,
     )
     script = render_sbatch(spec)
     if args.script:
@@ -265,6 +346,11 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--cpus-per-task", type=int, default=DEFAULT_CPUS)
     parser.add_argument("--raw-root", type=Path)
     parser.add_argument("--results-path", type=Path)
+    parser.add_argument("--opt-cmake-flags", default="")
+    parser.add_argument("--reference-mode", action="store_true")
+    parser.add_argument("--claim-level", default="L0")
+    parser.add_argument("--geant4-version", default="v11.2.2")
+    parser.add_argument("--notes", default="")
     parser.add_argument("--script", type=Path)
     parser.add_argument("--submit", action="store_true", help="submit with sbatch unless --dry-run is set")
     parser.add_argument("--dry-run", action="store_true", help="print the sbatch script and do not call sbatch")

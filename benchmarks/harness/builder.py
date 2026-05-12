@@ -39,38 +39,24 @@ class WorkloadSpec:
 
 
 WORKLOADS: dict[str, WorkloadSpec] = {
-    "W1": WorkloadSpec("W1", "examples/extended/electromagnetic/TestEm0", "TestEm0", "TestEm0"),
-    "W2": WorkloadSpec("W2", "examples/extended/electromagnetic/TestEm3", "TestEm3", "TestEm3"),
-    "W3": WorkloadSpec("W3", "examples/extended/hadronic/Hadr01", "Hadr01", "Hadr01"),
-    "W4": WorkloadSpec("W4", "examples/extended/hadronic/Hadr04", "Hadr04", "Hadr04"),
-    "gamma_100mev": WorkloadSpec(
-        "gamma_100mev", None, "benchmark_gamma_100mev", "benchmarks/benchmark_gamma_100mev", True
+    # Canonical Phase-5 publication workloads.  W1--W6 remain the stable
+    # harness IDs; event-name aliases below map to the same build targets.
+    "W1": WorkloadSpec("W1", None, "benchmark_gamma_100mev", "benchmarks/benchmark_gamma_100mev", True),
+    "W2": WorkloadSpec("W2", None, "benchmark_muon_10gev", "benchmarks/benchmark_muon_10gev", True),
+    "W3": WorkloadSpec("W3", None, "benchmark_nbar_carbon", "benchmarks/benchmark_nbar_carbon", True),
+    "W4": WorkloadSpec("W4", None, "benchmark_cosmic_shower", "benchmarks/benchmark_cosmic_shower", True),
+    "W5": WorkloadSpec(
+        "W5", None, "benchmark_optical_scintillator", "benchmarks/benchmark_optical_scintillator", True
     ),
-    "muon_10gev": WorkloadSpec(
-        "muon_10gev", None, "benchmark_muon_10gev", "benchmarks/benchmark_muon_10gev", True
-    ),
-    "nbar_carbon": WorkloadSpec(
-        "nbar_carbon", None, "benchmark_nbar_carbon", "benchmarks/benchmark_nbar_carbon", True
-    ),
-    "cosmic_shower": WorkloadSpec(
-        "cosmic_shower", None, "benchmark_cosmic_shower", "benchmarks/benchmark_cosmic_shower", True
-    ),
-    "optical_scintillator": WorkloadSpec(
-        "optical_scintillator",
-        None,
-        "benchmark_optical_scintillator",
-        "benchmarks/benchmark_optical_scintillator",
-        True,
-    ),
-    "beam_neutron": WorkloadSpec(
-        "beam_neutron", None, "benchmark_beam_neutron", "benchmarks/benchmark_beam_neutron", True
-    ),
+    "W6": WorkloadSpec("W6", None, "benchmark_beam_neutron", "benchmarks/benchmark_beam_neutron", True),
 }
 ALIASES = {
-    "testem0": "W1",
-    "testem3": "W2",
-    "hadr01": "W3",
-    "hadr04": "W4",
+    "gamma_100mev": "W1",
+    "muon_10gev": "W2",
+    "nbar_carbon": "W3",
+    "cosmic_shower": "W4",
+    "optical_scintillator": "W5",
+    "beam_neutron": "W6",
 }
 
 
@@ -167,7 +153,7 @@ def resolve_workload(workload: str) -> WorkloadSpec:
         return canonical
     if key.startswith("benchmark_"):
         return WorkloadSpec(key, None, key, f"benchmarks/{key}", True)
-    raise BuildError(f"unknown benchmark workload {workload!r}; expected W1-W4 or a phase-5 event name")
+    raise BuildError(f"unknown benchmark workload {workload!r}; expected W1-W6 or a phase-5 event alias")
 
 
 def _build(

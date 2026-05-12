@@ -43,7 +43,7 @@ elif len(sys.argv) > 2 and sys.argv[1] == "--build":
     build_dir = Path(sys.argv[2])
     target = sys.argv[sys.argv.index("--target") + 1] if "--target" in sys.argv else "unknown"
     if mode != "missing_binary":
-        binary = build_dir / target
+        binary = build_dir / "benchmarks" / target if target.startswith("benchmark_") else build_dir / target
         binary.parent.mkdir(parents=True, exist_ok=True)
         binary.write_text("#!/usr/bin/env bash\\nexit 0\\n", encoding="utf-8")
         binary.chmod(0o755)
@@ -55,7 +55,7 @@ elif len(sys.argv) > 2 and sys.argv[1] == "--build":
     return prefix, geant4_source, fake_cmake, env
 
 
-def test_build_vanilla_testem0_with_fake_cmake(tmp_path: Path) -> None:
+def test_build_vanilla_w1_gamma_with_fake_cmake(tmp_path: Path) -> None:
     prefix, geant4_source, fake_cmake, env = _fixture_tree(tmp_path)
     build_dir = build_vanilla(
         prefix,
@@ -68,7 +68,7 @@ def test_build_vanilla_testem0_with_fake_cmake(tmp_path: Path) -> None:
         env=env,
     )
     assert build_dir.name == "vanilla_vanilla_W1"
-    assert (build_dir / "TestEm0").is_file()
+    assert (build_dir / "benchmarks/benchmark_gamma_100mev").is_file()
     log = (tmp_path / "logs/vanilla_H3.txt").read_text(encoding="utf-8")
     assert "benchmarks/harness" not in log
     assert "sbatch" not in log
@@ -94,7 +94,7 @@ def test_build_optimized_dry_run_writes_plan_only(tmp_path: Path) -> None:
         env=env,
     )
     assert build_dir.name == "optimized_BD-geant4-000_W1"
-    assert not (build_dir / "TestEm0").exists()
+    assert not (build_dir / "benchmarks/benchmark_gamma_100mev").exists()
     log = (tmp_path / "logs/BD-geant4-000_H3.txt").read_text(encoding="utf-8")
     assert "DRY-RUN" in log
     assert "-DG4GPU_EXAMPLE=ON" in log
@@ -142,7 +142,7 @@ def test_missing_binary_is_fail_closed(tmp_path: Path) -> None:
 def main() -> int:
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp = Path(tmp_dir)
-        test_build_vanilla_testem0_with_fake_cmake(tmp)
+        test_build_vanilla_w1_gamma_with_fake_cmake(tmp)
         test_build_optimized_dry_run_writes_plan_only(tmp)
         test_build_log_error_is_fail_closed(tmp)
         test_missing_binary_is_fail_closed(tmp)
