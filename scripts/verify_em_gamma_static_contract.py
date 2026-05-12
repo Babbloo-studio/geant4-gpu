@@ -96,6 +96,8 @@ def main() -> int:
         "scripts/verify_em_gamma_implementation_roadmap.py",
         "NAME g4gpu_em_validation_fixture_contract",
         "scripts/verify_em_gamma_validation_fixture_contract.py",
+        "NAME g4gpu_em_table_owner_preflight",
+        "scripts/verify_em_gamma_table_owner_preflight.py",
     ):
         require(CMAKE, marker)
 
