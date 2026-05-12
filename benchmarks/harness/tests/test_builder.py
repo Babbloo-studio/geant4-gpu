@@ -151,6 +151,7 @@ def test_w5_w6_are_methodology_blocked_until_true_nnbar_drivers_exist() -> None:
             assert "methodology-blocked" in message
             assert expected in message
             assert "stand-in event driver" in message
+            assert "docs/specs/w5_w6_full_event_drivers.md" in message
         else:
             raise AssertionError(f"{workload} resolved before a true NNBAR full-event driver exists")
 

@@ -122,6 +122,7 @@ def test_w5_w6_reference_dry_run_fail_closed_until_methodology_drivers_exist(tmp
         assert "#SBATCH" not in output.getvalue()
         assert "methodology-blocked" in err.getvalue()
         assert expected in err.getvalue()
+        assert "docs/specs/w5_w6_full_event_drivers.md" in err.getvalue()
 
 
 def test_stand_in_reference_dry_run_uses_event_names_not_methodology_ids(tmp_path: Path) -> None:

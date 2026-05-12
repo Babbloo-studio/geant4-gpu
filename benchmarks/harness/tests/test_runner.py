@@ -79,6 +79,7 @@ def test_render_methodology_w5_w6_fail_closed(tmp_path: Path) -> None:
         except BuildError as exc:
             assert "methodology-blocked" in str(exc)
             assert "NNBAR full event" in str(exc)
+            assert "docs/specs/w5_w6_full_event_drivers.md" in str(exc)
         else:
             raise AssertionError(f"{workload} rendered despite missing true NNBAR full-event driver")
 
