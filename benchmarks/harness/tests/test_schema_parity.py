@@ -91,13 +91,13 @@ def _write_observables(path: Path, *, shifted: bool) -> None:
     pq.write_table(table, path)
 
 
-def test_schema_round_trip(tmp: Path) -> None:
+def test_schema_round_trip(tmp_path: Path) -> None:
     row = _example_row()
     table = table_from_rows([row])
     assert table.schema.equals(RESULT_SCHEMA, check_metadata=False)
     assert tuple(table.column_names) == COLUMN_NAMES
     assert table["seeds"][0].as_py() == [101, 202]
-    path = tmp / "result.parquet"
+    path = tmp_path / "result.parquet"
     write_rows(path, [row])
     assert read_rows(path) == [row]
     assert result_tag_for(1.01, True) == "SPEEDUP"
@@ -106,10 +106,10 @@ def test_schema_round_trip(tmp: Path) -> None:
     assert result_tag_for(99.0, False) == "PARITY_FAIL"
 
 
-def test_parity_identical_and_shifted(tmp: Path) -> None:
-    reference = tmp / "reference.parquet"
-    identical = tmp / "identical.parquet"
-    shifted = tmp / "shifted.parquet"
+def test_parity_identical_and_shifted(tmp_path: Path) -> None:
+    reference = tmp_path / "reference.parquet"
+    identical = tmp_path / "identical.parquet"
+    shifted = tmp_path / "shifted.parquet"
     _write_observables(reference, shifted=False)
     _write_observables(identical, shifted=False)
     _write_observables(shifted, shifted=True)
