@@ -6,6 +6,7 @@ from .builder import BuildError, build_optimized, build_vanilla
 from .hardware import HardwareFingerprint, collect_local_fingerprint
 from .optimization_registry import OptimizationRegistryEntry, require_entry
 from .sampler_observables import SamplerObservableGateResult, bd001_sampler_observable_gate
+from .bd001_branch_gate import BD001BranchGateResult, bd001_branch_gate
 
 __all__ = [
     "BenchmarkResultRow",
@@ -21,4 +22,6 @@ __all__ = [
     "require_entry",
     "SamplerObservableGateResult",
     "bd001_sampler_observable_gate",
+    "BD001BranchGateResult",
+    "bd001_branch_gate",
 ]
