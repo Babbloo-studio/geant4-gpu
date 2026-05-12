@@ -65,6 +65,7 @@ def main() -> int:
         require(TEST, marker)
 
     for marker in (
+        "find_package(Python3 COMPONENTS Interpreter QUIET)",
         "if(G4GPU_WITH_EM)",
         "target_sources(G4GPU PRIVATE src/physics/EMStepKernel.cu)",
         "target_link_libraries(G4GPU PRIVATE CUDA::curand)",
@@ -73,6 +74,8 @@ def main() -> int:
         "add_test(",
         "NAME g4gpu_em_deferred_process_gap",
         "scripts/verify_em_gamma_deferred_process_gap.py",
+        "NAME g4gpu_em_static_contract",
+        "scripts/verify_em_gamma_static_contract.py",
     ):
         require(CMAKE, marker)
 
