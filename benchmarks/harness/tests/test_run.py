@@ -93,6 +93,94 @@ def test_dry_run_w1_pl1_h3_prints_sbatch_without_side_effects(tmp_path: Path) ->
     assert not (tmp_path / "repo/benchmarks/raw/BD-geant4-032").exists()
 
 
+def test_dry_run_propagates_claim_metadata_to_sbatch(tmp_path: Path) -> None:
+    output = io.StringIO()
+    with redirect_stdout(output):
+        rc = run_main(
+            [
+                "--opt-id",
+                "BD-geant4-001",
+                "--opt-branch",
+                "lane/bd-geant4-001-moller-bhabha-inverse-sampler",
+                "--opt-cmake-flags=-DG4GPU_BD001=ON",
+                "--workload",
+                "W1",
+                "--physics-list",
+                "PL2",
+                "--hw",
+                "H3",
+                "--n-seeds",
+                "1",
+                "--repo-root",
+                str(tmp_path / "repo"),
+                "--claim-level",
+                "L2",
+                "--geant4-version",
+                "v11.2.2-bd001-preflight",
+                "--notes",
+                "bd001 metadata preflight",
+            ]
+        )
+    text = output.getvalue()
+    assert rc == 0
+    assert "CLAIM_LEVEL=L2" in text
+    assert "GEANT4_VERSION=v11.2.2-bd001-preflight" in text
+    assert "NOTES='bd001 metadata preflight'" in text
+    assert '--claim-level "${CLAIM_LEVEL}"' in text
+    assert '--geant4-version "${GEANT4_VERSION}"' in text
+    assert '--notes "${NOTES}"' in text
+
+
+def test_invalid_claim_metadata_fails_closed(tmp_path: Path) -> None:
+    err = io.StringIO()
+    with redirect_stderr(err):
+        rc = run_main(
+            [
+                "--opt-id",
+                "BD-geant4-001",
+                "--opt-branch",
+                "lane/bd001",
+                "--workload",
+                "W1",
+                "--physics-list",
+                "PL1",
+                "--hw",
+                "H3",
+                "--repo-root",
+                str(tmp_path / "repo"),
+                "--claim-level",
+                "L9",
+            ]
+        )
+    assert rc == 2
+    assert "--claim-level must be one of" in err.getvalue()
+
+    err = io.StringIO()
+    with redirect_stderr(err):
+        rc = run_main(
+            [
+                "--opt-id",
+                "BD-geant4-001",
+                "--opt-branch",
+                "lane/bd001",
+                "--workload",
+                "W1",
+                "--physics-list",
+                "PL1",
+                "--hw",
+                "H3",
+                "--repo-root",
+                str(tmp_path / "repo"),
+                "--claim-level",
+                "L3",
+                "--notes",
+                "not paper ready",
+            ]
+        )
+    assert rc == 2
+    assert "--notes must be empty for L3 rows" in err.getvalue()
+
+
 def test_w5_w6_reference_dry_run_fail_closed_until_methodology_drivers_exist(tmp_path: Path) -> None:
     for workload, expected in {
         "W5": "NNBAR full event (signal)",
@@ -383,6 +471,8 @@ def main() -> int:
         tmp = Path(tmp_dir)
         test_module_help_exits_zero()
         test_dry_run_w1_pl1_h3_prints_sbatch_without_side_effects(tmp)
+        test_dry_run_propagates_claim_metadata_to_sbatch(tmp)
+        test_invalid_claim_metadata_fails_closed(tmp)
         test_w5_w6_reference_dry_run_fail_closed_until_methodology_drivers_exist(tmp)
         test_stand_in_reference_dry_run_uses_event_names_not_methodology_ids(tmp)
         test_submit_dry_run_writes_valid_scripts_but_does_not_call_sbatch(tmp)

@@ -30,13 +30,13 @@ if __package__ in (None, ""):
     from parity import parity_gate
     from runner import DEFAULT_ACCOUNT, DEFAULT_CPUS, DEFAULT_PARTITION, DEFAULT_TIME
     from runner import RunnerError, RunnerSpec, render_sbatch, submit_sbatch, write_sbatch
-    from schema import BenchmarkResultRow, read_rows, result_tag_for, utc_timestamp, write_rows
+    from schema import CLAIM_LEVELS, BenchmarkResultRow, read_rows, result_tag_for, utc_timestamp, write_rows
 else:
     from .builder import DEFAULT_GEANT4_PREFIX, DEFAULT_PYTHON, REPO_ROOT, BuildError, resolve_workload
     from .parity import parity_gate
     from .runner import DEFAULT_ACCOUNT, DEFAULT_CPUS, DEFAULT_PARTITION, DEFAULT_TIME
     from .runner import RunnerError, RunnerSpec, render_sbatch, submit_sbatch, write_sbatch
-    from .schema import BenchmarkResultRow, read_rows, result_tag_for, utc_timestamp, write_rows
+    from .schema import CLAIM_LEVELS, BenchmarkResultRow, read_rows, result_tag_for, utc_timestamp, write_rows
 
 
 DEFAULT_N_SEEDS = 20
@@ -341,6 +341,9 @@ def _plan_scripts(args: argparse.Namespace) -> list[PlannedScript]:
                     raw_root=_raw_root(args, opt_id, workload_spec.workload_id, physics_list),
                     results_path=args.results,
                     reference_mode=args.generate_reference,
+                    claim_level=args.claim_level,
+                    geant4_version=args.geant4_version,
+                    notes=args.notes,
                 )
                 script = render_sbatch(spec)
                 planned.append(PlannedScript(label, spec, script, _script_path(args, opt_id, label)))
@@ -359,6 +362,12 @@ def _validate_run_args(args: argparse.Namespace) -> None:
         raise RunError("--n-seeds must be positive")
     if args.seed and args.seeds:
         raise RunError("use either repeated --seed or --seeds, not both")
+    if args.claim_level not in CLAIM_LEVELS:
+        raise RunError(f"--claim-level must be one of {sorted(CLAIM_LEVELS)}")
+    if args.claim_level == "L3" and args.notes:
+        raise RunError("--notes must be empty for L3 rows")
+    if not str(args.geant4_version).strip():
+        raise RunError("--geant4-version must be non-empty")
 
 
 def _seeds(args: argparse.Namespace) -> tuple[int, ...]:
