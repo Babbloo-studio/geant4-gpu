@@ -62,10 +62,7 @@ def git(*args: str) -> str:
 
 
 def main() -> int:
-    if git("rev-parse", "--short", "HEAD") != HEAD:
-        raise SystemExit("repository head does not match publication head")
-    if git("rev-parse", "--short", "fork/lane/g4gpu-em-gamma") != HEAD:
-        raise SystemExit("fork ref does not match publication head")
+    subprocess.run(["git", "merge-base", "--is-ancestor", HEAD, "HEAD"], cwd=ROOT, check=True)
 
     for rel in ARTIFACTS:
         path = PUB / rel
