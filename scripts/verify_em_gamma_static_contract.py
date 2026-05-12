@@ -82,6 +82,8 @@ def main() -> int:
         "scripts/verify_em_gamma_publication_audit.py",
         "NAME g4gpu_em_publication_artifacts",
         "scripts/verify_em_gamma_publication_artifacts.py",
+        "NAME g4gpu_em_source_boundary",
+        "scripts/verify_em_gamma_source_boundary.py",
         "NAME g4gpu_em_runtime_sbatch_contract",
         "scripts/verify_em_gamma_runtime_sbatch.py",
         "NAME g4gpu_em_runtime_gpu_report",
