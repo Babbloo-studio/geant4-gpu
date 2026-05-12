@@ -76,6 +76,8 @@ def main() -> int:
         "scripts/verify_em_gamma_deferred_process_gap.py",
         "NAME g4gpu_em_static_contract",
         "scripts/verify_em_gamma_static_contract.py",
+        "NAME g4gpu_em_stub_fail_closed",
+        "scripts/verify_em_gamma_stub_fail_closed.py",
     ):
         require(CMAKE, marker)
 

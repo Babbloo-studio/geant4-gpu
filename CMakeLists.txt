@@ -143,6 +143,11 @@ if(G4GPU_WITH_EM)
       COMMAND ${Python3_EXECUTABLE}
               ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_em_gamma_static_contract.py
     )
+    add_test(
+      NAME g4gpu_em_stub_fail_closed
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_em_gamma_stub_fail_closed.py
+    )
   endif()
 endif()
 
