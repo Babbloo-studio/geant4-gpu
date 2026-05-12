@@ -70,13 +70,13 @@ METHODOLOGY_BLOCKERS = {
         "W5 is methodology-blocked: docs/specs/paper-methodology.md defines "
         "W5 as the NNBAR full event (signal), 1000 events, FTFP_BERT. "
         "This checkout only has the stand-in event driver "
-        "'optical_scintillator', which is not a paper-ready W5 driver."
+        "'optical_scintillator', which is not a paper-ready W5 driver. See docs/specs/w5_w6_full_event_drivers.md."
     ),
     "W6": (
         "W6 is methodology-blocked: docs/specs/paper-methodology.md defines "
         "W6 as the NNBAR full event (cosmic mu), 500 events, FTFP_BERT. "
         "This checkout only has the stand-in event driver 'beam_neutron', "
-        "which is not a paper-ready W6 driver."
+        "which is not a paper-ready W6 driver. See docs/specs/w5_w6_full_event_drivers.md."
     ),
 }
 
