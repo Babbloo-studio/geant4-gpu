@@ -52,6 +52,20 @@ def git(*args: str) -> str:
     return proc.stdout.strip()
 
 
+def bundle_heads(bundle: Path) -> str:
+    proc = subprocess.run(
+        ["git", "bundle", "list-heads", str(bundle)],
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        raise SystemExit(proc.stdout.strip())
+    return proc.stdout.strip()
+
+
 def find_one(pattern: str, description: str) -> Path:
     matches = sorted(PUB.glob(pattern))
     if len(matches) != 1:
@@ -63,9 +77,11 @@ def find_one(pattern: str, description: str) -> Path:
 
 def main() -> int:
     head = git("rev-parse", "--short", "HEAD")
+    full_head = git("rev-parse", "HEAD")
     ok_marker = f"EM_GAMMA_CURRENT_{head.upper()}_OK"
+    bundle = PUB / f"lane-g4gpu-em-gamma-{head}.bundle"
     artifacts = [
-        PUB / f"lane-g4gpu-em-gamma-{head}.bundle",
+        bundle,
         find_one(f"patches/*-{head}.patch", "current-head patch"),
         PUB / f"BUNDLE_VERIFY_{head}.txt",
         PUB / f"check_em_gamma_current_{head}.sh",
@@ -77,6 +93,8 @@ def main() -> int:
         if not path.is_file():
             raise SystemExit(f"missing publication artifact: {path}")
     require(PUB / f"BUNDLE_VERIFY_{head}.txt", "The bundle records a complete history.")
+    if full_head not in bundle_heads(bundle):
+        raise SystemExit(f"current HEAD {full_head} not listed by {bundle}")
     require(PUB / f"check_em_gamma_current_{head}.latest.txt", ok_marker)
     require(PUB / f"check_em_gamma_current_{head}.latest.txt", "100% tests passed")
     require(PUB / f"check_em_gamma_current_{head}.sh", "ctest --test-dir build")

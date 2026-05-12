@@ -13,7 +13,8 @@ For the live `lane/g4gpu-em-gamma` head, the publication directory must contain
 exactly one current-head instance of each artifact class:
 
 - `lane-g4gpu-em-gamma-<head>.bundle` with a successful `git bundle verify`
-  transcript in `BUNDLE_VERIFY_<head>.txt`.
+  transcript in `BUNDLE_VERIFY_<head>.txt`, and `git bundle list-heads` must
+  include the exact current commit hash.
 - One patch under `patches/*-<head>.patch`.
 - `check_em_gamma_current_<head>.sh` and its latest transcript ending in the
   matching `EM_GAMMA_CURRENT_<HEAD>_OK` marker.
@@ -28,7 +29,8 @@ green again.
 ## Boundary
 
 Passing `g4gpu_em_publication_artifacts` only proves that fallback publication
-artifacts for the current EM/gamma head exist and match their manifest. It does
+artifacts for the current EM/gamma head exist, list the current commit in the
+bundle heads, and match their manifest. It does
 not authorize SLURM submission, detector or event-driver execution, output-row
 generation, reference regeneration, physics-parity claims, speedup claims, ABI
 migration, or executable photoelectric, pair-production, or bremsstrahlung
