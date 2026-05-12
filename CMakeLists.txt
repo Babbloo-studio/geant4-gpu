@@ -183,6 +183,11 @@ if(G4GPU_WITH_EM)
       COMMAND ${Python3_EXECUTABLE}
               ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_em_gamma_deferred_contract_index.py
     )
+    add_test(
+      NAME g4gpu_em_implementation_roadmap
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_em_gamma_implementation_roadmap.py
+    )
   endif()
 endif()
 
