@@ -79,10 +79,12 @@ def main() -> int:
     head = git("rev-parse", "--short", "HEAD")
     full_head = git("rev-parse", "HEAD")
     ok_marker = f"EM_GAMMA_CURRENT_{head.upper()}_OK"
+    subject = git("show", "-s", "--format=%s", "HEAD")
     bundle = PUB / f"lane-g4gpu-em-gamma-{head}.bundle"
+    patch = find_one(f"patches/*-{head}.patch", "current-head patch")
     artifacts = [
         bundle,
-        find_one(f"patches/*-{head}.patch", "current-head patch"),
+        patch,
         PUB / f"BUNDLE_VERIFY_{head}.txt",
         PUB / f"check_em_gamma_current_{head}.sh",
         PUB / f"check_em_gamma_current_{head}.latest.txt",
@@ -95,6 +97,8 @@ def main() -> int:
     require(PUB / f"BUNDLE_VERIFY_{head}.txt", "The bundle records a complete history.")
     if full_head not in bundle_heads(bundle):
         raise SystemExit(f"current HEAD {full_head} not listed by {bundle}")
+    require(patch, full_head)
+    require(patch, f"Subject: [PATCH] {subject}")
     require(PUB / f"check_em_gamma_current_{head}.latest.txt", ok_marker)
     require(PUB / f"check_em_gamma_current_{head}.latest.txt", "100% tests passed")
     require(PUB / f"check_em_gamma_current_{head}.sh", "ctest --test-dir build")
