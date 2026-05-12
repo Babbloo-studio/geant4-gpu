@@ -92,6 +92,7 @@ endif()
 set_target_properties(G4GPU PROPERTIES
   CUDA_SEPARABLE_COMPILATION ON
   POSITION_INDEPENDENT_CODE ON
+  BUILD_RPATH "${G4GPU_CUDA_TARGET_LIB_DIR}"
 )
 
 enable_testing()
@@ -125,9 +126,11 @@ if(G4GPU_WITH_EM)
   set_target_properties(test_em_klein_nishina
     PROPERTIES
       CUDA_SEPARABLE_COMPILATION ON
+      BUILD_RPATH "${G4GPU_CUDA_TARGET_LIB_DIR}"
       RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
   )
   add_test(NAME g4gpu_em_klein_nishina COMMAND ${CMAKE_BINARY_DIR}/tests/test_em_klein_nishina)
+  set_tests_properties(g4gpu_em_klein_nishina PROPERTIES SKIP_RETURN_CODE 77)
 endif()
 
 add_executable(test_benchmark_manifest tests/test_benchmark_manifest.cc)

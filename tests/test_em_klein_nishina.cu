@@ -16,6 +16,7 @@ constexpr int kCdfBins = 20000;
 constexpr float kIncidentEnergyMeV = 1.0f;
 constexpr double kElectronMassMeV = 0.51099895;
 constexpr double kRequiredPValue = 0.05;
+constexpr int kCudaUnavailableSkipCode = 77;
 
 void Check(cudaError_t err, const char* what) {
     if (err != cudaSuccess) {
@@ -123,7 +124,7 @@ int main() {
     const cudaError_t count_status = cudaGetDeviceCount(&device_count);
     if (count_status != cudaSuccess || device_count == 0) {
         std::cout << "SKIP: CUDA device unavailable for Klein-Nishina runtime test\n";
-        return 0;
+        return kCudaUnavailableSkipCode;
     }
 
     curandState* d_rng = nullptr;
