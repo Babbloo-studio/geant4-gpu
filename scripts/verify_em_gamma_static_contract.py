@@ -86,6 +86,8 @@ def main() -> int:
         "scripts/verify_em_gamma_runtime_gpu_report.py",
         "NAME g4gpu_em_photoelectric_contract",
         "scripts/verify_em_gamma_photoelectric_contract.py",
+        "NAME g4gpu_em_pair_contract",
+        "scripts/verify_em_gamma_pair_contract.py",
     ):
         require(CMAKE, marker)
 
