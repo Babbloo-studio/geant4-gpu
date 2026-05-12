@@ -163,6 +163,11 @@ if(G4GPU_WITH_EM)
       COMMAND ${Python3_EXECUTABLE}
               ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_em_gamma_runtime_gpu_report.py
     )
+    add_test(
+      NAME g4gpu_em_photoelectric_contract
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_em_gamma_photoelectric_contract.py
+    )
   endif()
 endif()
 
