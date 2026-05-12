@@ -15,7 +15,6 @@ import argparse
 from dataclasses import dataclass
 import hashlib
 import math
-import os
 from pathlib import Path
 import re
 import statistics
@@ -27,18 +26,18 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 if __package__ in (None, ""):
-    from bd001_review_gate import BD001ReviewGateError, bd001_review_gate
     from builder import DEFAULT_GEANT4_PREFIX, DEFAULT_PYTHON, REPO_ROOT, BuildError, resolve_workload
-    from optimization_registry import DEFAULT_REGISTRY, OptimizationRegistryError, require_entry
+    from optimization_registry import OptimizationRegistryError
     from parity import parity_gate
+    from run_helpers import DEFAULT_BD001_SOURCE_REPO, DEFAULT_REGISTRY, apply_registry_defaults, event_name_for, print_scripts
     from runner import DEFAULT_ACCOUNT, DEFAULT_CPUS, DEFAULT_PARTITION, DEFAULT_TIME
     from runner import RunnerError, RunnerSpec, render_sbatch, submit_sbatch, write_sbatch
     from schema import CLAIM_LEVELS, BenchmarkResultRow, read_rows, result_tag_for, utc_timestamp, write_rows
 else:
-    from .bd001_review_gate import BD001ReviewGateError, bd001_review_gate
     from .builder import DEFAULT_GEANT4_PREFIX, DEFAULT_PYTHON, REPO_ROOT, BuildError, resolve_workload
-    from .optimization_registry import DEFAULT_REGISTRY, OptimizationRegistryError, require_entry
+    from .optimization_registry import OptimizationRegistryError
     from .parity import parity_gate
+    from .run_helpers import DEFAULT_BD001_SOURCE_REPO, DEFAULT_REGISTRY, apply_registry_defaults, event_name_for, print_scripts
     from .runner import DEFAULT_ACCOUNT, DEFAULT_CPUS, DEFAULT_PARTITION, DEFAULT_TIME
     from .runner import RunnerError, RunnerSpec, render_sbatch, submit_sbatch, write_sbatch
     from .schema import CLAIM_LEVELS, BenchmarkResultRow, read_rows, result_tag_for, utc_timestamp, write_rows
@@ -49,24 +48,7 @@ DEFAULT_N_EVENTS = 1000
 DEFAULT_SEED_START = 1001
 DEFAULT_BUILD_ROOT = REPO_ROOT / "benchmarks/builds"
 DEFAULT_GEANT4_VERSION = "v11.2.2"
-DEFAULT_BD001_SOURCE_REPO = Path(
-    os.environ.get("G4GPU_BD001_SOURCE_REPO", "/projects/hep/fs10/shared/nnbar/billy/geant4-fork")
-)
 SAFE_TOKEN = re.compile(r"[^A-Za-z0-9_.-]+")
-WORKLOAD_EVENT_NAMES = {
-    "W1": "gamma_100mev",
-    "W2": "muon_10gev",
-    "W3": "nbar_carbon",
-    "W4": "cosmic_shower",
-    "gamma_100mev": "gamma_100mev",
-    "muon_10gev": "muon_10gev",
-    "nbar_carbon": "nbar_carbon",
-    "cosmic_shower": "cosmic_shower",
-    "optical_scintillator": "optical_scintillator",
-    "beam_neutron": "beam_neutron",
-}
-
-
 class RunError(RuntimeError):
     """Raised when the run CLI would perform unsafe or incomplete work."""
 
@@ -91,14 +73,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
     try:
-        _apply_registry_defaults(args)
+        apply_registry_defaults(args)
         if args.collect:
             return _collect(args)
         planned = _plan_scripts(args)
         if args.generate_reference and (not args.submit or args.dry_run):
             print("# REFERENCE_GENERATION_DRY_RUN: scripts only; no sbatch submission or event execution.")
         if not args.submit or args.dry_run:
-            _print_scripts(planned)
+            print_scripts(planned)
             if args.script_dir:
                 for item in planned:
                     write_sbatch(item.spec, item.path)
@@ -165,48 +147,6 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _apply_registry_defaults(args: argparse.Namespace) -> None:
-    """Validate and apply optimization-registry metadata when requested."""
-
-    if not args.require_registry:
-        return
-    if args.generate_reference:
-        raise RunError("--require-registry is only valid for optimized result runs, not reference generation")
-    if not args.opt_id:
-        raise RunError("--require-registry requires --opt-id")
-    entry = require_entry(args.opt_id, args.registry)
-    if args.opt_id == "BD-geant4-001":
-        _require_bd001_reviewed_registry(args)
-    if args.opt_branch and args.opt_branch != entry.branch:
-        raise RunError(
-            f"--opt-branch {args.opt_branch!r} conflicts with registry branch {entry.branch!r}"
-        )
-    if args.opt_cmake_flags and args.opt_cmake_flags != entry.cmake_flags:
-        raise RunError("--opt-cmake-flags conflicts with registry cmake_flags")
-    if entry.claim_level and args.claim_level != "L0" and args.claim_level != entry.claim_level:
-        raise RunError(f"--claim-level {args.claim_level!r} conflicts with registry claim_level {entry.claim_level!r}")
-    if entry.notes and args.notes and args.notes != entry.notes:
-        raise RunError("--notes conflicts with registry notes")
-    if entry.optimized_geant4_prefix is not None:
-        registry_prefix = Path(entry.optimized_geant4_prefix)
-        if args.optimized_geant4_prefix and args.optimized_geant4_prefix != registry_prefix:
-            raise RunError("--optimized-geant4-prefix conflicts with registry optimized_geant4_prefix")
-        args.optimized_geant4_prefix = registry_prefix
-    args.opt_branch = args.opt_branch or entry.branch
-    args.opt_cmake_flags = args.opt_cmake_flags or entry.cmake_flags
-    args.claim_level = entry.claim_level or args.claim_level
-    args.notes = args.notes or entry.notes
-
-
-def _require_bd001_reviewed_registry(args: argparse.Namespace) -> None:
-    """Require BD001 production registry rows to pass the source-backed review gate."""
-
-    try:
-        bd001_review_gate(args.registry, source_repo=args.bd001_source_repo)
-    except BD001ReviewGateError as exc:
-        raise RunError(f"BD-geant4-001 reviewed-registry gate failed: {exc}") from exc
-
-
 def _collect(args: argparse.Namespace) -> int:
     if args.collect_check:
         print("COLLECT_READY")
@@ -220,7 +160,7 @@ def _collect(args: argparse.Namespace) -> int:
         raise RunError("--collect requires --raw-dir")
     if args.n_events <= 0:
         raise RunError("--n-events must be positive")
-    expected_event = _event_name_for(workload.workload_id)
+    expected_event = event_name_for(workload.workload_id)
     if args.generate_reference:
         manifest = _collect_reference(args.repo_root, raw_dir, workload.workload_id, expected_event, seeds, args.n_events)
         print(
@@ -473,32 +413,12 @@ def _script_path(args: argparse.Namespace, opt_id: str, label: str) -> Path:
     return root / filename
 
 
-def _print_scripts(planned: Sequence[PlannedScript]) -> None:
-    if len(planned) == 1:
-        print(planned[0].script)
-        return
-    for index, item in enumerate(planned):
-        if index:
-            print()
-        print(f"# --- BEGIN {item.label} ---")
-        print(item.script)
-        print(f"# --- END {item.label} ---")
-
-
 def _single(values: Sequence[str] | None, label: str) -> str:
     if not values:
         raise RunError(f"--collect requires --{label}")
     if len(values) != 1:
         raise RunError(f"--collect accepts exactly one --{label} value")
     return values[0]
-
-
-def _event_name_for(workload_id: str) -> str:
-    if workload_id in WORKLOAD_EVENT_NAMES:
-        return WORKLOAD_EVENT_NAMES[workload_id]
-    if workload_id.startswith("benchmark_"):
-        return workload_id.removeprefix("benchmark_")
-    raise RunError(f"no event-name mapping for workload {workload_id!r}")
 
 
 def _finite_values(table: pa.Table, column: str, path: Path) -> list[float]:
