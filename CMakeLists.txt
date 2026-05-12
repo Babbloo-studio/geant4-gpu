@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.18)
 project(G4GPU LANGUAGES CXX CUDA)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -80,7 +82,15 @@ endif()
 
 if(G4GPU_WITH_OPTICAL OR G4GPU_WITH_RTX)
   target_link_libraries(G4GPU PUBLIC ${OptiX_LIBRARIES})
-  target_include_directories(G4GPU PRIVATE ${OptiX_INCLUDE_DIRS})
+  target_include_directories(G4GPU PUBLIC ${OptiX_INCLUDE_DIRS})
+endif()
+
+if(G4GPU_WITH_RTX)
+  target_compile_definitions(G4GPU PUBLIC G4GPU_WITH_RTX=1)
+  target_sources(G4GPU PRIVATE
+    src/geometry/RTXGeometry.cc
+    src/geometry/RTXGeometry.cu
+  )
 endif()
 
 set_target_properties(G4GPU PROPERTIES
@@ -133,6 +143,11 @@ add_executable(test_navigation_prefetch tests/test_navigation_prefetch.cc)
 target_link_libraries(test_navigation_prefetch PRIVATE G4GPU)
 set_target_properties(test_navigation_prefetch PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
 add_test(NAME g4gpu_navigation_prefetch COMMAND ${CMAKE_BINARY_DIR}/tests/test_navigation_prefetch)
+
+add_executable(test_rtx_geometry tests/test_rtx_geometry.cc)
+target_link_libraries(test_rtx_geometry PRIVATE G4GPU)
+set_target_properties(test_rtx_geometry PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
+add_test(NAME g4gpu_rtx_geometry COMMAND ${CMAKE_BINARY_DIR}/tests/test_rtx_geometry)
 
 add_executable(test_benchmark_manifest tests/test_benchmark_manifest.cc)
 target_link_libraries(test_benchmark_manifest PRIVATE G4GPU)
