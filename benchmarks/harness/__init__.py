@@ -5,6 +5,7 @@ from .parity import ParityResult, parity_gate
 from .builder import BuildError, build_optimized, build_vanilla
 from .hardware import HardwareFingerprint, collect_local_fingerprint
 from .optimization_registry import OptimizationRegistryEntry, require_entry
+from .sampler_observables import SamplerObservableGateResult, bd001_sampler_observable_gate
 
 __all__ = [
     "BenchmarkResultRow",
@@ -18,4 +19,6 @@ __all__ = [
     "collect_local_fingerprint",
     "OptimizationRegistryEntry",
     "require_entry",
+    "SamplerObservableGateResult",
+    "bd001_sampler_observable_gate",
 ]
