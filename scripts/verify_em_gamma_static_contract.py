@@ -132,6 +132,8 @@ def main() -> int:
         "scripts/verify_em_gamma_option_boundary.py",
         "NAME g4gpu_em_option_off_config",
         "scripts/verify_em_gamma_option_off_config.py",
+        "NAME g4gpu_em_line_caps",
+        "scripts/verify_em_gamma_line_caps.py",
     ):
         require(CMAKE, marker)
 

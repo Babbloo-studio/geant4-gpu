@@ -66,6 +66,11 @@ EXPECTED = {
         "g4gpu_em_lane_objective_audit",
         "lane prompt-to-artifact objective audit",
     ),
+    "em_gamma_line_cap_guard_20260512.md": Coverage(
+        "scripts/verify_em_gamma_line_caps.py",
+        "g4gpu_em_line_caps",
+        "compact artifact line-cap guard",
+    ),
     "em_gamma_pair_contract_20260512.md": Coverage(
         "scripts/verify_em_gamma_pair_contract.py",
         "g4gpu_em_pair_contract",
