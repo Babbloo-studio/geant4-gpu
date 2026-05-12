@@ -90,6 +90,8 @@ def main() -> int:
         "scripts/verify_em_gamma_pair_contract.py",
         "NAME g4gpu_em_bremsstrahlung_contract",
         "scripts/verify_em_gamma_bremsstrahlung_contract.py",
+        "NAME g4gpu_em_deferred_contract_index",
+        "scripts/verify_em_gamma_deferred_contract_index.py",
     ):
         require(CMAKE, marker)
 
