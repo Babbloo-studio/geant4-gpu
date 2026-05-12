@@ -188,6 +188,11 @@ if(G4GPU_WITH_EM)
       COMMAND ${Python3_EXECUTABLE}
               ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_em_gamma_implementation_roadmap.py
     )
+    add_test(
+      NAME g4gpu_em_validation_fixture_contract
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_em_gamma_validation_fixture_contract.py
+    )
   endif()
 endif()
 
