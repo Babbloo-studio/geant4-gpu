@@ -76,6 +76,11 @@ EXPECTED = {
         "g4gpu_em_preflight_contract_index",
         "preflight index",
     ),
+    "em_gamma_publication_artifacts_20260512.md": Coverage(
+        "scripts/verify_em_gamma_publication_artifacts.py",
+        "g4gpu_em_publication_artifacts",
+        "current-head fallback publication artifacts",
+    ),
     "em_gamma_process_selector_preflight_20260512.md": Coverage(
         "scripts/verify_em_gamma_process_selector_preflight.py",
         "g4gpu_em_process_selector_preflight",
