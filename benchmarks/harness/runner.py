@@ -132,8 +132,8 @@ def render_sbatch(spec: RunnerSpec) -> str:
         '[[ -x "${VANILLA_BIN}" ]] || { echo "missing executable vanilla binary: ${VANILLA_BIN}" >&2; exit 2; }',
         '[[ -x "${OPTIMIZED_BIN}" ]] || { echo "missing executable optimized binary: ${OPTIMIZED_BIN}" >&2; exit 2; }',
         (
-            '"${PYTHON_BIN}" -m benchmarks.harness.run --help >/dev/null 2>&1 || '
-            '{ echo "COLLECTOR_NOT_IMPLEMENTED: benchmarks.harness.run is required before execution" >&2; exit 2; }'
+            '"${PYTHON_BIN}" -m benchmarks.harness.run --collect --collect-check >/dev/null 2>&1 || '
+            '{ echo "COLLECTOR_NOT_IMPLEMENTED: benchmarks.harness.run --collect is still a stub" >&2; exit 2; }'
         ),
         "",
         "run_one() {",

@@ -176,6 +176,11 @@ add_test(
   COMMAND ${G4GPU_BENCHMARK_PYTHON}
     ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/harness/tests/test_hardware.py
 )
+add_test(
+  NAME g4gpu_benchmark_harness_run
+  COMMAND ${G4GPU_BENCHMARK_PYTHON}
+    ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/harness/tests/test_run.py
+)
 
 set(G4GPU_BENCHMARK_EVENTS
   gamma_100mev
