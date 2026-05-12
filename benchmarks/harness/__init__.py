@@ -7,6 +7,7 @@ from .hardware import HardwareFingerprint, collect_local_fingerprint
 from .optimization_registry import OptimizationRegistryEntry, require_entry
 from .sampler_observables import SamplerObservableGateResult, bd001_sampler_observable_gate
 from .bd001_branch_gate import BD001BranchGateResult, bd001_branch_gate
+from .bd001_review_gate import BD001ReviewGateResult, bd001_review_gate
 
 __all__ = [
     "BenchmarkResultRow",
@@ -24,4 +25,6 @@ __all__ = [
     "bd001_sampler_observable_gate",
     "BD001BranchGateResult",
     "bd001_branch_gate",
+    "BD001ReviewGateResult",
+    "bd001_review_gate",
 ]

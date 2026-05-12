@@ -37,6 +37,11 @@ BD-geant4-001:
   claim_level: L2
   notes: "preflight only"
   optimized_geant4_prefix: "/local/slurmtmp/bd001-optimized-geant4"
+  review_status: approved
+  reviewed_by:
+    - reviewer@example.invalid
+  reviewed_commit: "0123456789abcdef0123456789abcdef01234567"
+  review_artifact: "/tmp/bd001-review.txt"
 """,
     )
     entry = require_entry("BD-geant4-001", path)
@@ -46,6 +51,10 @@ BD-geant4-001:
     assert entry.depends_on == ()
     assert entry.claim_level == "L2"
     assert entry.optimized_geant4_prefix == "/local/slurmtmp/bd001-optimized-geant4"
+    assert entry.review_status == "approved"
+    assert entry.reviewed_by == ("reviewer@example.invalid",)
+    assert entry.reviewed_commit == "0123456789abcdef0123456789abcdef01234567"
+    assert entry.review_artifact == "/tmp/bd001-review.txt"
 
 
 def test_missing_registry_or_entry_fails_closed(tmp_path: Path) -> None:
@@ -109,6 +118,46 @@ def test_invalid_registry_shapes_fail_closed() -> None:
                 "optimized_geant4_prefix": "relative/prefix",
             },
             "optimized_geant4_prefix must be an absolute path",
+        ),
+        (
+            {
+                "branch": "lane/bd001",
+                "cmake_flags": "",
+                "description": "x",
+                "depends_on": [],
+                "review_status": "rubber-stamped",
+            },
+            "review_status must be",
+        ),
+        (
+            {
+                "branch": "lane/bd001",
+                "cmake_flags": "",
+                "description": "x",
+                "depends_on": [],
+                "reviewed_by": [],
+            },
+            "reviewed_by must contain",
+        ),
+        (
+            {
+                "branch": "lane/bd001",
+                "cmake_flags": "",
+                "description": "x",
+                "depends_on": [],
+                "reviewed_commit": "not-a-commit",
+            },
+            "reviewed_commit must be",
+        ),
+        (
+            {
+                "branch": "lane/bd001",
+                "cmake_flags": "",
+                "description": "x",
+                "depends_on": [],
+                "review_artifact": "relative-review.txt",
+            },
+            "review_artifact must be an absolute path",
         ),
     ):
         try:

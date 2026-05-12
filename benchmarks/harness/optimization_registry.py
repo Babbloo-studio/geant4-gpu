@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import re
 from typing import Any
 
 import yaml
@@ -19,7 +20,15 @@ else:
 
 DEFAULT_REGISTRY = REPO_ROOT / "benchmarks/optimizations_registry.yaml"
 REQUIRED_FIELDS = ("branch", "cmake_flags", "description", "depends_on")
-OPTIONAL_FIELDS = ("claim_level", "notes", "optimized_geant4_prefix")
+OPTIONAL_FIELDS = (
+    "claim_level",
+    "notes",
+    "optimized_geant4_prefix",
+    "review_status",
+    "reviewed_by",
+    "reviewed_commit",
+    "review_artifact",
+)
 ALLOWED_FIELDS = frozenset((*REQUIRED_FIELDS, *OPTIONAL_FIELDS))
 
 
@@ -39,6 +48,10 @@ class OptimizationRegistryEntry:
     claim_level: str | None = None
     notes: str = ""
     optimized_geant4_prefix: str | None = None
+    review_status: str | None = None
+    reviewed_by: tuple[str, ...] = ()
+    reviewed_commit: str | None = None
+    review_artifact: str | None = None
 
 
 def load_registry(path: str | Path = DEFAULT_REGISTRY) -> dict[str, OptimizationRegistryEntry]:
@@ -97,6 +110,26 @@ def validate_entry(opt_id: str, value: Any) -> OptimizationRegistryEntry:
         optimized_geant4_prefix = _non_empty_string(opt_id, optimized_geant4_prefix, "optimized_geant4_prefix")
         if not Path(optimized_geant4_prefix).is_absolute():
             raise OptimizationRegistryError(f"{opt_id}: optimized_geant4_prefix must be an absolute path")
+    review_status = value.get("review_status")
+    if review_status is not None:
+        review_status = _non_empty_string(opt_id, review_status, "review_status")
+        if review_status not in {"approved", "blocked", "pending"}:
+            raise OptimizationRegistryError(f"{opt_id}: review_status must be approved, blocked, or pending")
+    reviewed_by = ()
+    if "reviewed_by" in value:
+        reviewed_by = _string_list(opt_id, value["reviewed_by"], "reviewed_by")
+        if not reviewed_by:
+            raise OptimizationRegistryError(f"{opt_id}: reviewed_by must contain at least one reviewer")
+    reviewed_commit = value.get("reviewed_commit")
+    if reviewed_commit is not None:
+        reviewed_commit = _non_empty_string(opt_id, reviewed_commit, "reviewed_commit")
+        if not re.fullmatch(r"[0-9a-f]{40}", reviewed_commit):
+            raise OptimizationRegistryError(f"{opt_id}: reviewed_commit must be a 40-character lowercase git sha")
+    review_artifact = value.get("review_artifact")
+    if review_artifact is not None:
+        review_artifact = _non_empty_string(opt_id, review_artifact, "review_artifact")
+        if not Path(review_artifact).is_absolute():
+            raise OptimizationRegistryError(f"{opt_id}: review_artifact must be an absolute path")
     if claim_level == "L3" and notes:
         raise OptimizationRegistryError(f"{opt_id}: notes must be empty for L3 registry rows")
     return OptimizationRegistryEntry(
@@ -108,6 +141,10 @@ def validate_entry(opt_id: str, value: Any) -> OptimizationRegistryEntry:
         claim_level=claim_level,
         notes=notes,
         optimized_geant4_prefix=optimized_geant4_prefix,
+        review_status=review_status,
+        reviewed_by=reviewed_by,
+        reviewed_commit=reviewed_commit,
+        review_artifact=review_artifact,
     )
 
 
