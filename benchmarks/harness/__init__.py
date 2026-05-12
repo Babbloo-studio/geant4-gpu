@@ -4,6 +4,7 @@ from .schema import BenchmarkResultRow, RESULT_SCHEMA
 from .parity import ParityResult, parity_gate
 from .builder import BuildError, build_optimized, build_vanilla
 from .hardware import HardwareFingerprint, collect_local_fingerprint
+from .optimization_registry import OptimizationRegistryEntry, require_entry
 
 __all__ = [
     "BenchmarkResultRow",
@@ -15,4 +16,6 @@ __all__ = [
     "build_vanilla",
     "HardwareFingerprint",
     "collect_local_fingerprint",
+    "OptimizationRegistryEntry",
+    "require_entry",
 ]
