@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+"""Static contract verifier for the EM/gamma scaffold."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+HEADER = ROOT / "include/g4gpu/EMStepKernel.hh"
+KERNEL = ROOT / "src/physics/EMStepKernel.cu"
+TEST = ROOT / "tests/test_em_klein_nishina.cu"
+CMAKE = ROOT / "CMakeLists.txt"
+
+
+def text(path: Path) -> str:
+    if not path.exists():
+        raise SystemExit(f"missing required file: {path.relative_to(ROOT)}")
+    return path.read_text()
+
+
+def require(path: Path, needle: str) -> None:
+    if needle not in text(path):
+        raise SystemExit(f"missing marker in {path.relative_to(ROOT)}: {needle}")
+
+
+def require_absent(path: Path, needle: str) -> None:
+    if needle in text(path):
+        raise SystemExit(
+            f"unexpected marker in {path.relative_to(ROOT)}: {needle}"
+        )
+
+
+def main() -> int:
+    for symbol in (
+        "SamplePhotoelectric",
+        "SampleCompton",
+        "SamplePair",
+        "SampleBremsstrahlung",
+        "EMStep(",
+        "LaunchEMStepKernel",
+        "LaunchComptonSampleKernel",
+    ):
+        require(HEADER, symbol)
+
+    for marker in (
+        "SampleKleinNishinaEnergyFraction",
+        "Kahn/Butcher-Messel rejection sampler",
+        "SampleCompton(tracks.ekin[i], material",
+        "TODO Phase 2.EM-photoelectric",
+        "TODO Phase 2.EM-pair",
+        "TODO Phase 2.EM-bremsstrahlung",
+    ):
+        require(KERNEL, marker)
+
+    for marker in (
+        "constexpr int kSamples = 10000;",
+        "constexpr double kRequiredPValue = 0.05;",
+        "constexpr int kCudaUnavailableSkipCode = 77;",
+        "SKIP: CUDA device unavailable",
+        "PASS: Klein-Nishina scattered-energy KS",
+        "return kCudaUnavailableSkipCode;",
+        "LaunchEMStepKernel(&buffer.device(), d_rng, nullptr, kSamples, nullptr)",
+    ):
+        require(TEST, marker)
+
+    for marker in (
+        "if(G4GPU_WITH_EM)",
+        "target_sources(G4GPU PRIVATE src/physics/EMStepKernel.cu)",
+        "target_link_libraries(G4GPU PRIVATE CUDA::curand)",
+        "add_test(NAME g4gpu_em_klein_nishina",
+        "set_tests_properties(g4gpu_em_klein_nishina PROPERTIES SKIP_RETURN_CODE 77)",
+        "add_test(",
+        "NAME g4gpu_em_deferred_process_gap",
+        "scripts/verify_em_gamma_deferred_process_gap.py",
+    ):
+        require(CMAKE, marker)
+
+    for path in (HEADER, KERNEL, TEST, CMAKE, Path(__file__)):
+        for forbidden in ("NN" "BAR" + "_Detector", "nnbar" + "_reconstruction"):
+            require_absent(path, forbidden)
+
+    print("EM_GAMMA_STATIC_CONTRACT_OK")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
