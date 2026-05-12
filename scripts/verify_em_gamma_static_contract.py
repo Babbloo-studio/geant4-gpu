@@ -106,6 +106,8 @@ def main() -> int:
         "scripts/verify_em_gamma_process_selector_preflight.py",
         "NAME g4gpu_em_status_code_preflight",
         "scripts/verify_em_gamma_status_code_preflight.py",
+        "NAME g4gpu_em_preflight_contract_index",
+        "scripts/verify_em_gamma_preflight_contract_index.py",
     ):
         require(CMAKE, marker)
 

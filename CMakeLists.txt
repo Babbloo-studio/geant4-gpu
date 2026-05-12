@@ -218,6 +218,11 @@ if(G4GPU_WITH_EM)
       COMMAND ${Python3_EXECUTABLE}
               ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_em_gamma_status_code_preflight.py
     )
+    add_test(
+      NAME g4gpu_em_preflight_contract_index
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_em_gamma_preflight_contract_index.py
+    )
   endif()
 endif()
 
