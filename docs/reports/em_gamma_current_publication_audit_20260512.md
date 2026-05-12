@@ -2,63 +2,59 @@
 
 ## Scope
 
-This never-idle audit updates the evidence map for the EM/gamma compact unit at
-audited subject head `005e194f73668107e56a6f3a8bc0818c3aa978dc`
-(`test(em): guard deferred stubs fail closed`). The original fork-published
-head remains `75660c2`; later hardening commits are fallback-published as local
-bundles because HTTPS push is credential-blocked.
+This never-idle audit refreshes the evidence map for the EM/gamma compact unit at
+audited subject head `ac6a00e1d9d31817eb064f292f2e7fda3f2a9d62`
+(`docs(em): audit shared preflight chain`). The fork ref
+`Babbloo-studio/geant4-gpu:lane/g4gpu-em-gamma` now matches this head; fallback
+bundle, patch, verifier transcript, and checksum artifacts are also present
+under `/projects/hep/fs10/shared/nnbar/billy/g4gpu-em-gamma-publication/`.
 
-No SLURM command, GPU runtime test, detector/event run, reference generation,
-NNBAR production edit, parity claim, or speedup claim was performed by this
-audit.
+No new SLURM command, GPU runtime test, detector/event run, reference
+generation, NNBAR production edit, parity claim, speedup claim, ABI migration,
+or deferred-process implementation was performed by this audit.
 
 ## Prompt-to-artifact checklist
 
 | Requirement / gate | Current evidence | Status |
 | --- | --- | --- |
-| EM/gamma scaffold is present | `include/g4gpu/EMStepKernel.hh`, `src/physics/EMStepKernel.cu`, and `tests/test_em_klein_nishina.cu` remain in the `lane/g4gpu-em-gamma` tree. | PASS |
-| Runtime gate refuses no-GPU evidence | `scripts/verify_em_gamma_runtime_gate.py` exits `2` with `EM_GAMMA_RUNTIME_GATE_BLOCKED` when the Klein-Nishina test skips for no visible CUDA device. | PASS |
-| Deferred processes remain explicit blockers | `docs/reports/em_gamma_deferred_process_gap_audit_20260512.md` plus `scripts/verify_em_gamma_deferred_process_gap.py` keep photoelectric, pair-production, and bremsstrahlung blocked on missing physics-table, secondary-buffer, process-selection, and per-process validation contracts. | PASS |
-| Static contract is checked | `scripts/verify_em_gamma_static_contract.py` requires the header/API markers, Compton sampler, CMake wiring, and EM CTest registrations. | PASS |
-| Deferred stubs are fail-closed | `scripts/verify_em_gamma_stub_fail_closed.py` checks the three deferred stubs keep `out = {};`, TODO markers, `return;`, and no mutation hooks until real contracts exist. | PASS |
-| Current fallback publication exists | `/projects/hep/fs10/shared/nnbar/billy/g4gpu-em-gamma-publication/lane-g4gpu-em-gamma-005e194.bundle`, `patches/0008-em-gamma-stub-fail-closed-005e194.patch`, `BUNDLE_VERIFY_005e194.txt`, and `SHA256SUMS-005e194-stub-fail-closed` exist. | PASS |
-| Current verifier covers hardening chain | `check_em_gamma_current_005e194.latest.txt` ends `EM_GAMMA_CURRENT_005E194_OK` after checksum checks through `e7cf78f`, `122e239`, `589a11a`, `7acb856`, `087e8ca`, and `005e194`. | PASS |
-| No isolation leak | Current verifier transcript contains `ISOLATION_OK`; the source-side grep covers G4GPU `include`, `src`, and `tests`. | PASS |
-| No false GPU physics claim | Transcript records the expected no-GPU runtime-gate result: `runtime_gate_rc=2` and `EM_GAMMA_RUNTIME_GATE_BLOCKED`. | PASS |
-
-## Verifier follow-up
-
-The follow-up verifier `scripts/verify_em_gamma_publication_audit.py` and CTest
-target `g4gpu_em_publication_audit` keep this audit report source-gated so the
-no-SLURM/no-runtime-pass boundary and fallback-publication markers cannot
-silently drift; it also preserves the explicit no GPU runtime pass wording.
+| EM/gamma scaffold is present | `include/g4gpu/EMStepKernel.hh`, `src/physics/EMStepKernel.cu`, and `tests/test_em_klein_nishina.cu` remain in the `lane/g4gpu-em-gamma` tree and are checked by `g4gpu_em_static_contract`. | PASS |
+| Runtime gate has archived GPU evidence | `docs/reports/em_gamma_runtime_gate_gpu_20260512.md` archives Slurm job `3049900` with strict `EM_GAMMA_RUNTIME_GATE_OK`; current holder/no-GPU CTest may still skip `g4gpu_em_klein_nishina`. | PASS |
+| Deferred stubs remain fail-closed | `scripts/verify_em_gamma_stub_fail_closed.py` checks `SamplePhotoelectric`, `SamplePair`, and `SampleBremsstrahlung` keep `out = {};`, TODO markers, `return;`, and no mutation hooks. | PASS |
+| Shared preflights are indexed | `docs/reports/em_gamma_preflight_contract_index_20260512.md` indexes table owner, secondary buffer, RNG stream, process selector, and status-code vocabulary preflights. | PASS |
+| Preflight chain has completion audit | `docs/reports/em_gamma_preflight_chain_audit_20260512.md` maps prompt requirements to concrete artifacts and keeps the remaining implementation blockers explicit. | PASS |
+| Current fallback publication exists | `lane-g4gpu-em-gamma-ac6a00e.bundle`, `patches/0019-em-gamma-preflight-chain-audit-ac6a00e.patch`, `BUNDLE_VERIFY_ac6a00e.txt`, and `SHA256SUMS-ac6a00e-preflight-chain-audit` exist in the publication directory. | PASS |
+| Current verifier covers the hardening chain | `check_em_gamma_current_ac6a00e.latest.txt` ends `EM_GAMMA_CURRENT_AC6A00E_OK` after direct preflight-chain/index/status/static verifiers, line caps, isolation grep, focused EM CTest, and `git diff --check`. | PASS |
+| No isolation leak | The current verifier chain greps for forbidden NNBAR detector/reconstruction strings across the touched report/verifier/CMake and G4GPU `include`, `src`, and `tests` surfaces. | PASS |
+| No false physics/performance claim | Reports and verifiers preserve explicit boundaries: no detector/event workload, output-row generation, physics-parity claim, speedup claim, ABI migration, or deferred-process implementation. | PASS |
 
 ## Live evidence snapshot
 
 ```text
 branch=lane/g4gpu-em-gamma
-head=005e194f73668107e56a6f3a8bc0818c3aa978dc
-subject=test(em): guard deferred stubs fail closed
+head=ac6a00e1d9d31817eb064f292f2e7fda3f2a9d62
+fork_ref=ac6a00e1d9d31817eb064f292f2e7fda3f2a9d62
+subject=docs(em): audit shared preflight chain
+EM_GAMMA_PREFLIGHT_CHAIN_AUDIT_OK
+EM_GAMMA_PREFLIGHT_CONTRACT_INDEX_OK
+EM_GAMMA_STATUS_CODE_PREFLIGHT_OK
 EM_GAMMA_STATIC_CONTRACT_OK
-EM_GAMMA_DEFERRED_PROCESS_GAP_OK
-EM_GAMMA_STUB_FAIL_CLOSED_OK
-focused deferred/static/stub CTest: 3/3 passed
-runtime_gate_rc=2
-EM_GAMMA_CURRENT_005E194_OK
+focused EM CTest: 20/20 passed, with g4gpu_em_klein_nishina skipped on holder/no-GPU context
+EM_GAMMA_CURRENT_AC6A00E_OK
 ```
 
-Line-count evidence from the current verifier keeps all touched EM files below
-the 500-line cap: `CMakeLists.txt` 193, `EMStepKernel.hh` 109,
-`EMStepKernel.cu` 255, `test_em_klein_nishina.cu` 166, runtime verifier 90,
-deferred verifier 86, static verifier 93, stub verifier 97, and deferred report
-69 lines.
+Line-count evidence from the current verifier keeps all listed EM files below the
+500-line cap: preflight-chain audit 42, preflight-chain verifier 107,
+preflight-contract index 37, preflight-index verifier 112, static verifier 125,
+CMakeLists 273, `EMStepKernel.hh` 109, `EMStepKernel.cu` 255, and
+`test_em_klein_nishina.cu` 166 lines.
 
 ## Remaining blocked work
 
-1. Run `g4gpu_em_klein_nishina` on an allocated GPU node and require the KS
-   `PASS` marker before counting any runtime Compton-sampling evidence.
-2. Design and validate explicit contracts for photoelectric, pair-production,
-   and bremsstrahlung before changing their fail-closed stubs.
-3. Refresh GitHub publication only when credentials are available; until then,
-   the authoritative transport path for commits after `75660c2` is the fallback
-   bundle/patch/checksum set in `g4gpu-em-gamma-publication`.
+1. Implement and validate `G4GPUEMPhysicsTables`, `G4GPUEMSecondaryBuffer`,
+   `G4GPUEMRngStream`, `G4GPUEMProcessSelector`, and `G4GPUEMStatusCode` before
+   changing any deferred stub behavior.
+2. Generate process-specific Geant4/tabulated validation fixtures and GPU-node
+   evidence for photoelectric, pair-production, and bremsstrahlung.
+3. Only after those gates pass may a later goal discuss detector/event workloads,
+   benchmark result rows, physics-parity claims, speedup claims, or paper-ready
+   EM transport evidence.

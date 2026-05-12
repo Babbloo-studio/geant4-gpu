@@ -42,23 +42,30 @@ def main() -> int:
     for marker in (
         "# EM/gamma current-publication audit",
         "audited subject head",
-        "005e194f73668107e56a6f3a8bc0818c3aa978dc",
-        "EM_GAMMA_CURRENT_005E194_OK",
-        "EM_GAMMA_RUNTIME_GATE_BLOCKED",
-        "runtime_gate_rc=2",
-        "No SLURM command",
+        "ac6a00e1d9d31817eb064f292f2e7fda3f2a9d62",
+        "fork_ref=ac6a00e1d9d31817eb064f292f2e7fda3f2a9d62",
+        "EM_GAMMA_CURRENT_AC6A00E_OK",
+        "EM_GAMMA_RUNTIME_GATE_OK",
+        "g4gpu_em_klein_nishina skipped",
+        "No new SLURM command",
         "GPU runtime test",
         "NNBAR production edit",
         "speedup claim",
+        "physics-parity claim",
+        "ABI migration",
         "photoelectric, pair-production, and bremsstrahlung",
-        "g4gpu-em-gamma-publication",
+        "lane-g4gpu-em-gamma-ac6a00e.bundle",
+        "SHA256SUMS-ac6a00e-preflight-chain-audit",
+        "em_gamma_preflight_contract_index_20260512.md",
+        "em_gamma_preflight_chain_audit_20260512.md",
     ):
         require(REPORT, marker)
 
     for phrase in (
-        "GPU runtime pass",
-        "parity claim",
+        "detector/event",
+        "physics-parity claim",
         "speedup claim",
+        "deferred-process implementation",
     ):
         require_count(REPORT, phrase, 1)
 
