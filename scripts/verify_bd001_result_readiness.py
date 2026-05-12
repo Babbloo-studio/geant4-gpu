@@ -23,6 +23,12 @@ SOURCE_REPO = Path("/projects/hep/fs10/shared/nnbar/billy/geant4-fork")
 REPORT = ROOT / "docs/reports/bd_geant4_001_result_readiness_20260513.md"
 RESULTS_PARQUET = ROOT / "benchmarks/results/results.parquet"
 SAMPLER_VALIDATION_DIR = ROOT / "benchmarks/validation/bd001_sampler"
+OPTIMIZED_PREFIX = Path("/projects/hep/fs10/shared/nnbar/billy/pending/bd001-optimized-geant4")
+OPTIMIZED_PREFIX_CONFIG = OPTIMIZED_PREFIX / "lib/cmake/Geant4/Geant4Config.cmake"
+PREFIX_WRAPPER = ROOT / "scripts/prepare_bd001_optimized_prefix.sh"
+SOURCE_COMMIT = "4ac150b"
+HANDOFF_HEAD = "782d84c"
+CMAKE_FLAG = "-DG4EM_MOLLER_BHABHA_INVERSE_SAMPLER=ON"
 EXPECTED_SAMPLER_PARQUETS = (
     SAMPLER_VALIDATION_DIR / "vanilla_sampler_observables.parquet",
     SAMPLER_VALIDATION_DIR / "optimized_sampler_observables.parquet",
@@ -33,6 +39,11 @@ REQUIRED_REPORT_MARKERS = (
     "OPEN: optimized_prefix_config_missing",
     "OPEN: sampler_validation_parquets_missing",
     "OPEN: canonical_results_parquet_missing",
+    str(OPTIMIZED_PREFIX),
+    SOURCE_COMMIT,
+    HANDOFF_HEAD,
+    CMAKE_FLAG,
+    "scripts/prepare_bd001_optimized_prefix.sh",
     "BD001_RESULT_READINESS_BLOCKED_OK",
     "No SLURM",
 )
@@ -68,6 +79,18 @@ def _require_sampler_parquets_missing() -> list[str]:
     return [str(path.relative_to(ROOT)) for path in EXPECTED_SAMPLER_PARQUETS]
 
 
+def _require_optimized_prefix_blocker() -> None:
+    if OPTIMIZED_PREFIX_CONFIG.exists() or (OPTIMIZED_PREFIX / "Geant4Config.cmake").exists():
+        raise AssertionError("optimized Geant4Config.cmake exists; replace blocker with digest-pinned evidence")
+    if not PREFIX_WRAPPER.is_file():
+        raise AssertionError(f"missing optimized-prefix wrapper: {PREFIX_WRAPPER.relative_to(ROOT)}")
+    wrapper = PREFIX_WRAPPER.read_text(encoding="utf-8")
+    for marker in ("BD001_OPTIMIZED_PREFIX_BUILD_APPROVED", SOURCE_COMMIT, HANDOFF_HEAD, CMAKE_FLAG):
+        if marker not in wrapper:
+            raise AssertionError(f"optimized-prefix wrapper missing marker: {marker}")
+    print(f"BD001_RESULT_READINESS_OPTIMIZED_PREFIX_PREFLIGHT_OK path={OPTIMIZED_PREFIX_CONFIG}")
+
+
 def main() -> int:
     entry = require_entry("BD-geant4-001", DEFAULT_REGISTRY)
     if entry.review_status != "blocked":
@@ -85,6 +108,7 @@ def main() -> int:
         BD001BranchGateError,
         "missing Geant4Config.cmake under optimized prefix",
     )
+    _require_optimized_prefix_blocker()
     print("BD001_RESULT_READINESS_OPTIMIZED_PREFIX_BLOCKED_OK")
 
     missing_parquets = _require_sampler_parquets_missing()

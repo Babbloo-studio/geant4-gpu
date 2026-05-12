@@ -11,7 +11,14 @@ claims.
   `benchmarks/optimizations_registry.yaml` row still has `review_status:
   blocked`, so `bd001_review_gate(...)` must reject it before any measured run.
 - `OPEN: optimized_prefix_config_missing` — the registry points at the pending
-  optimized Geant4 prefix and no `Geant4Config.cmake` exists there.
+  optimized Geant4 prefix
+  `/projects/hep/fs10/shared/nnbar/billy/pending/bd001-optimized-geant4`,
+  and no `lib/cmake/Geant4/Geant4Config.cmake` exists there. Source evidence
+  is pinned to source commit `4ac150b`, handoff head `782d84c`, and CMake flag
+  `-DG4EM_MOLLER_BHABHA_INVERSE_SAMPLER=ON`. A later approved compute build
+  should use guarded wrapper `scripts/prepare_bd001_optimized_prefix.sh`; it
+  exits `BD001_OPTIMIZED_PREFIX_PREFLIGHT_BLOCKED` unless
+  `BD001_OPTIMIZED_PREFIX_BUILD_APPROVED=YES` is set by a fresh planner goal.
 - `OPEN: sampler_validation_parquets_missing` — the required sampler-observable
   files are not staged under `benchmarks/validation/bd001_sampler/`:
   `vanilla_sampler_observables.parquet` and
