@@ -3,7 +3,7 @@
 ## Scope
 
 This never-idle audit updates the evidence map for the EM/gamma compact unit at
-current local head `005e194f73668107e56a6f3a8bc0818c3aa978dc`
+audited subject head `005e194f73668107e56a6f3a8bc0818c3aa978dc`
 (`test(em): guard deferred stubs fail closed`). The original fork-published
 head remains `75660c2`; later hardening commits are fallback-published as local
 bundles because HTTPS push is credential-blocked.
@@ -25,6 +25,13 @@ audit.
 | Current verifier covers hardening chain | `check_em_gamma_current_005e194.latest.txt` ends `EM_GAMMA_CURRENT_005E194_OK` after checksum checks through `e7cf78f`, `122e239`, `589a11a`, `7acb856`, `087e8ca`, and `005e194`. | PASS |
 | No isolation leak | Current verifier transcript contains `ISOLATION_OK`; the source-side grep covers G4GPU `include`, `src`, and `tests`. | PASS |
 | No false GPU physics claim | Transcript records the expected no-GPU runtime-gate result: `runtime_gate_rc=2` and `EM_GAMMA_RUNTIME_GATE_BLOCKED`. | PASS |
+
+## Verifier follow-up
+
+The follow-up verifier `scripts/verify_em_gamma_publication_audit.py` and CTest
+target `g4gpu_em_publication_audit` keep this audit report source-gated so the
+no-SLURM/no-runtime-pass boundary and fallback-publication markers cannot
+silently drift; it also preserves the explicit no GPU runtime pass wording.
 
 ## Live evidence snapshot
 

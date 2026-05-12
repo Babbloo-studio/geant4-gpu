@@ -78,6 +78,8 @@ def main() -> int:
         "scripts/verify_em_gamma_static_contract.py",
         "NAME g4gpu_em_stub_fail_closed",
         "scripts/verify_em_gamma_stub_fail_closed.py",
+        "NAME g4gpu_em_publication_audit",
+        "scripts/verify_em_gamma_publication_audit.py",
     ):
         require(CMAKE, marker)
 
