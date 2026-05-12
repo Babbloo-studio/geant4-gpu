@@ -131,6 +131,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--optimized-build-root", type=Path, default=DEFAULT_BUILD_ROOT / "optimized")
     parser.add_argument("--repo-root", type=Path, default=REPO_ROOT)
     parser.add_argument("--geant4-prefix", type=Path, default=DEFAULT_GEANT4_PREFIX)
+    parser.add_argument("--optimized-geant4-prefix", type=Path, help="optimized Geant4 install prefix for source-level Geant4 changes")
     parser.add_argument("--python", type=Path, default=DEFAULT_PYTHON)
     parser.add_argument("--account", default=DEFAULT_ACCOUNT)
     parser.add_argument("--partition", default=DEFAULT_PARTITION)
@@ -172,6 +173,11 @@ def _apply_registry_defaults(args: argparse.Namespace) -> None:
         raise RunError(f"--claim-level {args.claim_level!r} conflicts with registry claim_level {entry.claim_level!r}")
     if entry.notes and args.notes and args.notes != entry.notes:
         raise RunError("--notes conflicts with registry notes")
+    if entry.optimized_geant4_prefix is not None:
+        registry_prefix = Path(entry.optimized_geant4_prefix)
+        if args.optimized_geant4_prefix and args.optimized_geant4_prefix != registry_prefix:
+            raise RunError("--optimized-geant4-prefix conflicts with registry optimized_geant4_prefix")
+        args.optimized_geant4_prefix = registry_prefix
     args.opt_branch = args.opt_branch or entry.branch
     args.opt_cmake_flags = args.opt_cmake_flags or entry.cmake_flags
     args.claim_level = entry.claim_level or args.claim_level
@@ -368,6 +374,7 @@ def _plan_scripts(args: argparse.Namespace) -> list[PlannedScript]:
                     optimized_build=_optimized_build(args, opt_id, workload_spec.workload_id),
                     repo_root=args.repo_root,
                     geant4_prefix=args.geant4_prefix,
+                    optimized_geant4_prefix=args.optimized_geant4_prefix,
                     python=args.python,
                     account=args.account,
                     partition=args.partition,
@@ -403,6 +410,11 @@ def _validate_run_args(args: argparse.Namespace) -> None:
         raise RunError("--notes must be empty for L3 rows")
     if not str(args.geant4_version).strip():
         raise RunError("--geant4-version must be non-empty")
+    if not args.generate_reference and args.opt_id == "BD-geant4-001":
+        if args.optimized_geant4_prefix is None:
+            raise RunError("BD-geant4-001 requires --optimized-geant4-prefix for Geant4-source optimization selection")
+        if args.optimized_geant4_prefix == args.geant4_prefix:
+            raise RunError("BD-geant4-001 --optimized-geant4-prefix must differ from --geant4-prefix")
 
 
 def _seeds(args: argparse.Namespace) -> tuple[int, ...]:

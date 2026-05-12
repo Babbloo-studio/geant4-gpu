@@ -59,6 +59,49 @@ def test_render_sbatch_contains_fail_closed_compute_node_contract(tmp_path: Path
     assert '${variant}_seed_${seed}.txt' in script
     assert '${variant}_seed_${seed}.parquet' in script
     assert "benchmark_gamma_100mev" in script
+    assert "VANILLA_GEANT4_PREFIX=" in script
+    assert "OPTIMIZED_GEANT4_PREFIX=" in script
+    assert 'setup_geant4_env "${geant4_prefix}"' in script
+    assert '"${binary}" --events "${N_EVENTS}" --commit "${OPT_ID}_${variant}_seed_${seed}" \\' in script
+    assert '    --physics-list "${PHYSICS_LIST}" --output "${out}"' in script
+
+
+def test_bd001_requires_distinct_optimized_geant4_prefix(tmp_path: Path) -> None:
+    try:
+        render_sbatch(replace(_spec(tmp_path), opt_id="BD-geant4-001", opt_branch="lane/bd001"))
+    except RunnerError as exc:
+        assert "explicit optimized_geant4_prefix" in str(exc)
+    else:
+        raise AssertionError("BD-001 rendered without an optimized Geant4 prefix")
+
+    try:
+        render_sbatch(
+            replace(
+                _spec(tmp_path),
+                opt_id="BD-geant4-001",
+                opt_branch="lane/bd001",
+                optimized_geant4_prefix=tmp_path / "hibeam_env",
+            )
+        )
+    except RunnerError as exc:
+        assert "must differ" in str(exc)
+    else:
+        raise AssertionError("BD-001 rendered with identical vanilla/optimized Geant4 prefixes")
+
+
+def test_bd001_renders_separate_optimized_geant4_prefix(tmp_path: Path) -> None:
+    script = render_sbatch(
+        replace(
+            _spec(tmp_path),
+            opt_id="BD-geant4-001",
+            opt_branch="lane/bd001",
+            optimized_geant4_prefix=tmp_path / "optimized-geant4",
+        )
+    )
+    assert f"VANILLA_GEANT4_PREFIX={tmp_path / 'hibeam_env'}" in script
+    assert f"OPTIMIZED_GEANT4_PREFIX={tmp_path / 'optimized-geant4'}" in script
+    assert 'run_one vanilla "${VANILLA_BIN}" "${seed}" "${VANILLA_GEANT4_PREFIX}"' in script
+    assert 'run_one optimized "${OPTIMIZED_BIN}" "${seed}" "${OPTIMIZED_GEANT4_PREFIX}"' in script
 
 
 def test_render_reference_mode_runs_vanilla_only_for_stand_in_event(tmp_path: Path) -> None:
@@ -66,6 +109,8 @@ def test_render_reference_mode_runs_vanilla_only_for_stand_in_event(tmp_path: Pa
     assert "WORKLOAD_ID=optical_scintillator" in script
     assert "benchmark_optical_scintillator" in script
     assert "run_reference" in script
+    assert '"${VANILLA_BIN}" --events "${N_EVENTS}" --commit "reference_${WORKLOAD_ID}_${PHYSICS_LIST}_seed_${seed}" \\' in script
+    assert '    --physics-list "${PHYSICS_LIST}" --output "${out}"' in script
     assert "seed_${seed}.parquet" in script
     assert "--collect --generate-reference" in script
     assert "run_one optimized" not in script
@@ -213,6 +258,8 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp = Path(tmp_dir)
         test_render_sbatch_contains_fail_closed_compute_node_contract(tmp)
+        test_bd001_requires_distinct_optimized_geant4_prefix(tmp)
+        test_bd001_renders_separate_optimized_geant4_prefix(tmp)
         test_render_reference_mode_runs_vanilla_only_for_stand_in_event(tmp)
         test_render_methodology_w5_w6_fail_closed(tmp)
         test_write_sbatch_is_bash_syntax_clean(tmp)

@@ -19,7 +19,7 @@ else:
 
 DEFAULT_REGISTRY = REPO_ROOT / "benchmarks/optimizations_registry.yaml"
 REQUIRED_FIELDS = ("branch", "cmake_flags", "description", "depends_on")
-OPTIONAL_FIELDS = ("claim_level", "notes")
+OPTIONAL_FIELDS = ("claim_level", "notes", "optimized_geant4_prefix")
 ALLOWED_FIELDS = frozenset((*REQUIRED_FIELDS, *OPTIONAL_FIELDS))
 
 
@@ -38,6 +38,7 @@ class OptimizationRegistryEntry:
     depends_on: tuple[str, ...]
     claim_level: str | None = None
     notes: str = ""
+    optimized_geant4_prefix: str | None = None
 
 
 def load_registry(path: str | Path = DEFAULT_REGISTRY) -> dict[str, OptimizationRegistryEntry]:
@@ -91,6 +92,11 @@ def validate_entry(opt_id: str, value: Any) -> OptimizationRegistryEntry:
         if claim_level not in CLAIM_LEVELS:
             raise OptimizationRegistryError(f"{opt_id}: claim_level must be one of {sorted(CLAIM_LEVELS)}")
     notes = _string(opt_id, value.get("notes", ""), "notes")
+    optimized_geant4_prefix = value.get("optimized_geant4_prefix")
+    if optimized_geant4_prefix is not None:
+        optimized_geant4_prefix = _non_empty_string(opt_id, optimized_geant4_prefix, "optimized_geant4_prefix")
+        if not Path(optimized_geant4_prefix).is_absolute():
+            raise OptimizationRegistryError(f"{opt_id}: optimized_geant4_prefix must be an absolute path")
     if claim_level == "L3" and notes:
         raise OptimizationRegistryError(f"{opt_id}: notes must be empty for L3 registry rows")
     return OptimizationRegistryEntry(
@@ -101,6 +107,7 @@ def validate_entry(opt_id: str, value: Any) -> OptimizationRegistryEntry:
         depends_on=depends_on,
         claim_level=claim_level,
         notes=notes,
+        optimized_geant4_prefix=optimized_geant4_prefix,
     )
 
 

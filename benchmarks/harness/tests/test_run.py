@@ -60,6 +60,7 @@ def test_module_help_exits_zero() -> None:
     assert "--generate-reference" in proc.stdout
     assert "--collect" in proc.stdout
     assert "--require-registry" in proc.stdout
+    assert "--optimized-geant4-prefix" in proc.stdout
 
 
 def test_dry_run_w1_pl1_h3_prints_sbatch_without_side_effects(tmp_path: Path) -> None:
@@ -120,6 +121,10 @@ def test_dry_run_propagates_claim_metadata_to_sbatch(tmp_path: Path) -> None:
                 "1",
                 "--repo-root",
                 str(tmp_path / "repo"),
+                "--geant4-prefix",
+                str(tmp_path / "vanilla-geant4"),
+                "--optimized-geant4-prefix",
+                str(tmp_path / "optimized-geant4"),
                 "--claim-level",
                 "L2",
                 "--geant4-version",
@@ -133,6 +138,9 @@ def test_dry_run_propagates_claim_metadata_to_sbatch(tmp_path: Path) -> None:
     assert "CLAIM_LEVEL=L2" in text
     assert "GEANT4_VERSION=v11.2.2-bd001-preflight" in text
     assert "NOTES='bd001 metadata preflight'" in text
+    assert f"VANILLA_GEANT4_PREFIX={tmp_path / 'vanilla-geant4'}" in text
+    assert f"OPTIMIZED_GEANT4_PREFIX={tmp_path / 'optimized-geant4'}" in text
+    assert 'run_one optimized "${OPTIMIZED_BIN}" "${seed}" "${OPTIMIZED_GEANT4_PREFIX}"' in text
     assert '--claim-level "${CLAIM_LEVEL}"' in text
     assert '--geant4-version "${GEANT4_VERSION}"' in text
     assert '--notes "${NOTES}"' in text
@@ -155,6 +163,8 @@ def test_invalid_claim_metadata_fails_closed(tmp_path: Path) -> None:
                 "H3",
                 "--repo-root",
                 str(tmp_path / "repo"),
+                "--optimized-geant4-prefix",
+                str(tmp_path / "optimized-geant4"),
                 "--claim-level",
                 "L9",
             ]
@@ -178,6 +188,8 @@ def test_invalid_claim_metadata_fails_closed(tmp_path: Path) -> None:
                 "H3",
                 "--repo-root",
                 str(tmp_path / "repo"),
+                "--optimized-geant4-prefix",
+                str(tmp_path / "optimized-geant4"),
                 "--claim-level",
                 "L3",
                 "--notes",
@@ -199,6 +211,7 @@ BD-geant4-001:
   depends_on: []
   claim_level: L2
   notes: "registry preflight only"
+  optimized_geant4_prefix: "/local/slurmtmp/bd001-optimized-geant4-prefix"
 """,
     )
     output = io.StringIO()
@@ -220,6 +233,8 @@ BD-geant4-001:
                 "1",
                 "--repo-root",
                 str(tmp_path / "repo"),
+                "--geant4-prefix",
+                "/tmp/g4gpu-bd001-vanilla-prefix",
             ]
         )
     text = output.getvalue()
@@ -228,6 +243,56 @@ BD-geant4-001:
     assert "OPT_CMAKE_FLAGS=-DG4GPU_BD001_MOLLER_BHABHA=ON" in text
     assert "CLAIM_LEVEL=L2" in text
     assert "NOTES='registry preflight only'" in text
+    assert "OPTIMIZED_GEANT4_PREFIX=/local/slurmtmp/bd001-optimized-geant4-prefix" in text
+
+
+def test_bd001_requires_distinct_optimized_geant4_prefix(tmp_path: Path) -> None:
+    err = io.StringIO()
+    with redirect_stderr(err):
+        rc = run_main(
+            [
+                "--opt-id",
+                "BD-geant4-001",
+                "--opt-branch",
+                "lane/bd001",
+                "--workload",
+                "W1",
+                "--physics-list",
+                "PL1",
+                "--hw",
+                "H3",
+                "--repo-root",
+                str(tmp_path / "repo"),
+            ]
+        )
+    assert rc == 2
+    assert "requires --optimized-geant4-prefix" in err.getvalue()
+
+    same = tmp_path / "same-prefix"
+    err = io.StringIO()
+    with redirect_stderr(err):
+        rc = run_main(
+            [
+                "--opt-id",
+                "BD-geant4-001",
+                "--opt-branch",
+                "lane/bd001",
+                "--workload",
+                "W1",
+                "--physics-list",
+                "PL1",
+                "--hw",
+                "H3",
+                "--repo-root",
+                str(tmp_path / "repo"),
+                "--geant4-prefix",
+                str(same),
+                "--optimized-geant4-prefix",
+                str(same),
+            ]
+        )
+    assert rc == 2
+    assert "must differ" in err.getvalue()
 
 
 def test_require_registry_missing_bd001_entry_fails_closed(tmp_path: Path) -> None:
@@ -556,6 +621,7 @@ def main() -> int:
         test_dry_run_w1_pl1_h3_prints_sbatch_without_side_effects(tmp)
         test_dry_run_propagates_claim_metadata_to_sbatch(tmp)
         test_invalid_claim_metadata_fails_closed(tmp)
+        test_bd001_requires_distinct_optimized_geant4_prefix(tmp)
         test_w5_w6_reference_dry_run_fail_closed_until_methodology_drivers_exist(tmp)
         test_stand_in_reference_dry_run_uses_event_names_not_methodology_ids(tmp)
         test_submit_dry_run_writes_valid_scripts_but_does_not_call_sbatch(tmp)

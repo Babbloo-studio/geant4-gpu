@@ -36,6 +36,7 @@ BD-geant4-001:
   depends_on: []
   claim_level: L2
   notes: "preflight only"
+  optimized_geant4_prefix: "/local/slurmtmp/bd001-optimized-geant4"
 """,
     )
     entry = require_entry("BD-geant4-001", path)
@@ -44,6 +45,7 @@ BD-geant4-001:
     assert entry.cmake_flags == "-DG4GPU_BD001_MOLLER_BHABHA=ON"
     assert entry.depends_on == ()
     assert entry.claim_level == "L2"
+    assert entry.optimized_geant4_prefix == "/local/slurmtmp/bd001-optimized-geant4"
 
 
 def test_missing_registry_or_entry_fails_closed(tmp_path: Path) -> None:
@@ -97,6 +99,16 @@ def test_invalid_registry_shapes_fail_closed() -> None:
                 "notes": "not paper ready",
             },
             "notes must be empty",
+        ),
+        (
+            {
+                "branch": "lane/bd001",
+                "cmake_flags": "",
+                "description": "x",
+                "depends_on": [],
+                "optimized_geant4_prefix": "relative/prefix",
+            },
+            "optimized_geant4_prefix must be an absolute path",
         ),
     ):
         try:

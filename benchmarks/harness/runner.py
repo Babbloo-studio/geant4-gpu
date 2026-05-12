@@ -51,6 +51,7 @@ class RunnerSpec:
     optimized_build: Path
     repo_root: Path = REPO_ROOT
     geant4_prefix: Path = DEFAULT_GEANT4_PREFIX
+    optimized_geant4_prefix: Path | None = None
     python: Path = DEFAULT_PYTHON
     account: str = DEFAULT_ACCOUNT
     partition: str = DEFAULT_PARTITION
@@ -73,6 +74,7 @@ def render_sbatch(spec: RunnerSpec) -> str:
     raw_root = spec.raw_root or (
         spec.repo_root / "benchmarks/raw" / _sanitize(spec.opt_id) / workload.workload_id
     )
+    optimized_geant4_prefix = spec.optimized_geant4_prefix or spec.geant4_prefix
     results_path = spec.results_path or spec.repo_root / "benchmarks/results/results.parquet"
     vanilla_bin = _binary_path(spec.vanilla_build, workload.binary_rel)
     opt_bin = _binary_path(spec.optimized_build, workload.binary_rel)
@@ -90,6 +92,7 @@ def render_sbatch(spec: RunnerSpec) -> str:
         job_name,
         workload.workload_id,
         seed_words,
+        optimized_geant4_prefix,
     )
     lines.extend(_render_reference_body() if spec.reference_mode else _render_result_body())
     return "\n".join(lines)
@@ -105,6 +108,7 @@ def _render_common_header(
     job_name: str,
     workload_id: str,
     seed_words: str,
+    optimized_geant4_prefix: Path,
 ) -> list[str]:
     lines = [
         "#!/usr/bin/env bash",
@@ -127,7 +131,9 @@ def _render_common_header(
         "  module load GCC/13.2.0 CUDA/12.8.0",
         "",
         f"REPO_ROOT={_quote(spec.repo_root)}",
-        f"GEANT4_PREFIX={_quote(spec.geant4_prefix)}",
+        f"VANILLA_GEANT4_PREFIX={_quote(spec.geant4_prefix)}",
+        f"OPTIMIZED_GEANT4_PREFIX={_quote(optimized_geant4_prefix)}",
+        'GEANT4_PREFIX="${VANILLA_GEANT4_PREFIX}"',
         f"PYTHON_BIN={_quote(spec.python)}",
         f"VANILLA_BIN={_quote(vanilla_bin)}",
         f"OPTIMIZED_BIN={_quote(opt_bin)}",
@@ -145,22 +151,43 @@ def _render_common_header(
         f"N_EVENTS={int(spec.n_events)}",
         f"SEEDS=({seed_words})",
         "",
-        'export GEANT4_PREFIX="${GEANT4_PREFIX}"',
-        'export CMAKE_PREFIX_PATH="${GEANT4_PREFIX}:${GEANT4_PREFIX}/lib/CLHEP-2.4.6.2:${CMAKE_PREFIX_PATH:-}"',
-        'export LD_LIBRARY_PATH="${GEANT4_PREFIX}/lib:${LD_LIBRARY_PATH:-}"',
         'export G4GPU_BENCHMARK_PYTHON="${PYTHON_BIN}"',
-        'GEANT4_DATA="${GEANT4_PREFIX}/share/Geant4/data"',
-        'export G4NEUTRONHPDATA="${GEANT4_DATA}/NDL4.7.1"',
-        'export G4LEDATA="${GEANT4_DATA}/EMLOW8.5"',
-        'export G4LEVELGAMMADATA="${GEANT4_DATA}/PhotonEvaporation5.7"',
-        'export G4RADIOACTIVEDATA="${GEANT4_DATA}/RadioactiveDecay5.6"',
-        'export G4PARTICLEXSDATA="${GEANT4_DATA}/PARTICLEXS4.0"',
-        'export G4PIIDATA="${GEANT4_DATA}/PII1.3"',
-        'export G4REALSURFACEDATA="${GEANT4_DATA}/RealSurface2.2"',
-        'export G4SAIDXSDATA="${GEANT4_DATA}/SAIDDATA2.0"',
-        'export G4ABLADATA="${GEANT4_DATA}/ABLA3.3"',
-        'export G4INCLDATA="${GEANT4_DATA}/INCL1.2"',
-        'export G4ENSDFSTATEDATA="${GEANT4_DATA}/ENSDFSTATE2.3"',
+        "",
+        "geant4_config() {",
+        '  local prefix="$1"',
+        '  if [[ -f "${prefix}/lib/cmake/Geant4/Geant4Config.cmake" ]]; then',
+        '    printf "%s\n" "${prefix}/lib/cmake/Geant4/Geant4Config.cmake"',
+        '  elif [[ -f "${prefix}/Geant4Config.cmake" ]]; then',
+        '    printf "%s\n" "${prefix}/Geant4Config.cmake"',
+        "  else",
+        '    return 1',
+        "  fi",
+        "}",
+        "",
+        "setup_geant4_env() {",
+        '  local prefix="$1"',
+        '  geant4_config "${prefix}" >/dev/null || { echo "missing Geant4Config.cmake under ${prefix}" >&2; exit 2; }',
+        '  export GEANT4_PREFIX="${prefix}"',
+        '  export CMAKE_PREFIX_PATH="${prefix}:${prefix}/lib/CLHEP-2.4.6.2:${CMAKE_PREFIX_PATH:-}"',
+        '  export LD_LIBRARY_PATH="${prefix}/lib:${LD_LIBRARY_PATH:-}"',
+        '  GEANT4_DATA="${prefix}/share/Geant4/data"',
+        '  export G4NEUTRONHPDATA="${GEANT4_DATA}/NDL4.7.1"',
+        '  export G4LEDATA="${GEANT4_DATA}/EMLOW8.5"',
+        '  export G4LEVELGAMMADATA="${GEANT4_DATA}/PhotonEvaporation5.7"',
+        '  export G4RADIOACTIVEDATA="${GEANT4_DATA}/RadioactiveDecay5.6"',
+        '  export G4PARTICLEXSDATA="${GEANT4_DATA}/PARTICLEXS4.0"',
+        '  export G4PIIDATA="${GEANT4_DATA}/PII1.3"',
+        '  export G4REALSURFACEDATA="${GEANT4_DATA}/RealSurface2.2"',
+        '  export G4SAIDXSDATA="${GEANT4_DATA}/SAIDDATA2.0"',
+        '  export G4ABLADATA="${GEANT4_DATA}/ABLA3.3"',
+        '  export G4INCLDATA="${GEANT4_DATA}/INCL1.2"',
+        '  export G4ENSDFSTATEDATA="${GEANT4_DATA}/ENSDFSTATE2.3"',
+        "}",
+        "",
+        'setup_geant4_env "${VANILLA_GEANT4_PREFIX}"',
+        'if [[ "${OPTIMIZED_GEANT4_PREFIX}" != "${VANILLA_GEANT4_PREFIX}" ]]; then',
+        '  geant4_config "${OPTIMIZED_GEANT4_PREFIX}" >/dev/null || { echo "missing optimized Geant4Config.cmake under ${OPTIMIZED_GEANT4_PREFIX}" >&2; exit 2; }',
+        "fi",
         "",
         'cd "${REPO_ROOT}"',
         'mkdir -p "${RAW_ROOT}" "$(dirname "${RESULTS_PATH}")"',
@@ -182,16 +209,19 @@ def _render_result_body() -> list[str]:
         '  local variant="$1"',
         '  local binary="$2"',
         '  local seed="$3"',
+        '  local geant4_prefix="$4"',
         '  local out="${RAW_ROOT}/${variant}_seed_${seed}.parquet"',
         '  local log="${RAW_ROOT}/${variant}_seed_${seed}.txt"',
         '  echo "RUN variant=${variant} seed=${seed} binary=${binary}"',
-        '  "${binary}" --events "${N_EVENTS}" --commit "${OPT_ID}_${variant}_seed_${seed}" --output "${out}" >"${log}" 2>&1',
+        '  setup_geant4_env "${geant4_prefix}"',
+        '  "${binary}" --events "${N_EVENTS}" --commit "${OPT_ID}_${variant}_seed_${seed}" \\',
+        '    --physics-list "${PHYSICS_LIST}" --output "${out}" >"${log}" 2>&1',
         "}",
         "",
         'for seed in "${SEEDS[@]}"; do',
         '  export G4GPU_HARNESS_SEED="${seed}"',
-        '  run_one vanilla "${VANILLA_BIN}" "${seed}"',
-        '  run_one optimized "${OPTIMIZED_BIN}" "${seed}"',
+        '  run_one vanilla "${VANILLA_BIN}" "${seed}" "${VANILLA_GEANT4_PREFIX}"',
+        '  run_one optimized "${OPTIMIZED_BIN}" "${seed}" "${OPTIMIZED_GEANT4_PREFIX}"',
         "done",
         "",
         '"${PYTHON_BIN}" -m benchmarks.harness.run --collect \\',
@@ -220,7 +250,9 @@ def _render_reference_body() -> list[str]:
         '  local out="${RAW_ROOT}/seed_${seed}.parquet"',
         '  local log="${RAW_ROOT}/seed_${seed}.txt"',
         '  echo "REFERENCE seed=${seed} binary=${VANILLA_BIN}"',
-        '  "${VANILLA_BIN}" --events "${N_EVENTS}" --commit "reference_${WORKLOAD_ID}_${PHYSICS_LIST}_seed_${seed}" --output "${out}" >"${log}" 2>&1',
+        '  setup_geant4_env "${VANILLA_GEANT4_PREFIX}"',
+        '  "${VANILLA_BIN}" --events "${N_EVENTS}" --commit "reference_${WORKLOAD_ID}_${PHYSICS_LIST}_seed_${seed}" \\',
+        '    --physics-list "${PHYSICS_LIST}" --output "${out}" >"${log}" 2>&1',
         "}",
         "",
         'for seed in "${SEEDS[@]}"; do',
@@ -297,6 +329,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         optimized_build=args.optimized_build,
         repo_root=args.repo_root,
         geant4_prefix=args.geant4_prefix,
+        optimized_geant4_prefix=args.optimized_geant4_prefix,
         python=args.python,
         account=args.account,
         partition=args.partition,
@@ -339,6 +372,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--optimized-build", type=Path, required=True)
     parser.add_argument("--repo-root", type=Path, default=REPO_ROOT)
     parser.add_argument("--geant4-prefix", type=Path, default=DEFAULT_GEANT4_PREFIX)
+    parser.add_argument("--optimized-geant4-prefix", type=Path)
     parser.add_argument("--python", type=Path, default=DEFAULT_PYTHON)
     parser.add_argument("--account", default=DEFAULT_ACCOUNT)
     parser.add_argument("--partition", default=DEFAULT_PARTITION)
@@ -377,6 +411,11 @@ def _validate_spec(spec: RunnerSpec) -> None:
     }.items():
         if not str(value).strip():
             raise RunnerError(f"{name} must be non-empty")
+    if spec.opt_id == "BD-geant4-001" and not spec.reference_mode:
+        if spec.optimized_geant4_prefix is None:
+            raise RunnerError("BD-geant4-001 requires an explicit optimized_geant4_prefix")
+        if Path(spec.optimized_geant4_prefix) == Path(spec.geant4_prefix):
+            raise RunnerError("BD-geant4-001 optimized_geant4_prefix must differ from vanilla geant4_prefix")
 
 
 def _binary_path(build_dir: Path, binary_rel: str) -> Path:
