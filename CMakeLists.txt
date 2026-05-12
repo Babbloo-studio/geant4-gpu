@@ -186,6 +186,11 @@ add_test(
   COMMAND ${G4GPU_BENCHMARK_PYTHON}
     ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/harness/tests/test_nnbar_preflight.py
 )
+add_test(
+  NAME g4gpu_bd_geant4_001_harness_triage
+  COMMAND ${G4GPU_BENCHMARK_PYTHON}
+    ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_bd_geant4_001_harness_triage.py
+)
 
 set(G4GPU_BENCHMARK_EVENTS
   gamma_100mev
