@@ -1,0 +1,9 @@
+BD-geant4-001:
+  branch: lane/bd-geant4-001-moller-bhabha-inverse-sampler
+  cmake_flags: "-DG4EM_MOLLER_BHABHA_INVERSE_SAMPLER=ON"
+  description: "BLOCKED handoff for default-off Moller/Bhabha inverse-sampler scaffold"
+  depends_on: []
+  claim_level: L2
+  notes: "BLOCKED: source scaffold only; no approved review, optimized install prefix, sampler validation, smoke, or measurement authorization"
+  optimized_geant4_prefix: "/projects/hep/fs10/shared/nnbar/billy/pending/bd001-optimized-geant4"
+  review_status: blocked

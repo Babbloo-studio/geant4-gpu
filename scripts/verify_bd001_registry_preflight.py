@@ -38,12 +38,51 @@ def _run(cmd: list[str], *, cwd: Path = ROOT) -> str:
     return proc.stdout
 
 
+def _git(repo: Path, *args: str) -> str:
+    proc = subprocess.run(
+        ["git", "-C", str(repo), *args],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        raise AssertionError(f"git command failed: {' '.join(args)}\n{proc.stdout}")
+    return proc.stdout.strip()
+
+
+def _bd001_review_fixture(tmp: Path) -> tuple[Path, str, Path]:
+    branch = "lane/bd-geant4-001-moller-bhabha-inverse-sampler"
+    repo = tmp / "bd001-source"
+    repo.mkdir(parents=True)
+    _git(repo, "init")
+    _git(repo, "config", "user.email", "test@example.invalid")
+    _git(repo, "config", "user.name", "Test")
+    target = repo / "source/processes/electromagnetic/standard/src/G4MollerBhabhaModel.cc"
+    target.parent.mkdir(parents=True)
+    target.write_text(
+        "#ifdef G4GPU_BD001_MOLLER_BHABHA\n"
+        "// fixture optimized BD001 sampler hook\n"
+        "#endif\n"
+        "rndmEngine->flatArray(2, rndm);\n",
+        encoding="utf-8",
+    )
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-m", "bd001 fixture")
+    _git(repo, "branch", branch)
+    commit = _git(repo, "rev-parse", "HEAD")
+    artifact = tmp / "bd001-review.md"
+    artifact.write_text(f"BD-geant4-001 {branch} {commit} approved reviewer-a\n", encoding="utf-8")
+    return repo, commit, artifact
+
+
 def _exercise_registry_cli() -> None:
     with tempfile.TemporaryDirectory(prefix="bd001-registry-preflight-") as tmp_s:
         tmp = Path(tmp_s)
+        source_repo, commit, artifact = _bd001_review_fixture(tmp)
         registry = tmp / "optimizations_registry.yaml"
         registry.write_text(
-            """
+            f"""
 BD-geant4-001:
   branch: lane/bd-geant4-001-moller-bhabha-inverse-sampler
   cmake_flags: "-DG4GPU_BD001_MOLLER_BHABHA=ON"
@@ -51,6 +90,11 @@ BD-geant4-001:
   depends_on: []
   claim_level: L2
   notes: "registry preflight only"
+  optimized_geant4_prefix: "/local/slurmtmp/bd001-optimized-geant4-prefix"
+  review_status: approved
+  reviewed_by: [reviewer-a]
+  reviewed_commit: "{commit}"
+  review_artifact: "{artifact}"
 """.lstrip(),
             encoding="utf-8",
         )
@@ -64,6 +108,8 @@ BD-geant4-001:
                 "--require-registry",
                 "--registry",
                 str(registry),
+                "--bd001-source-repo",
+                str(source_repo),
                 "--workload",
                 "W1",
                 "--physics-list",

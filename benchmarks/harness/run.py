@@ -15,6 +15,7 @@ import argparse
 from dataclasses import dataclass
 import hashlib
 import math
+import os
 from pathlib import Path
 import re
 import statistics
@@ -26,6 +27,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 if __package__ in (None, ""):
+    from bd001_review_gate import BD001ReviewGateError, bd001_review_gate
     from builder import DEFAULT_GEANT4_PREFIX, DEFAULT_PYTHON, REPO_ROOT, BuildError, resolve_workload
     from optimization_registry import DEFAULT_REGISTRY, OptimizationRegistryError, require_entry
     from parity import parity_gate
@@ -33,6 +35,7 @@ if __package__ in (None, ""):
     from runner import RunnerError, RunnerSpec, render_sbatch, submit_sbatch, write_sbatch
     from schema import CLAIM_LEVELS, BenchmarkResultRow, read_rows, result_tag_for, utc_timestamp, write_rows
 else:
+    from .bd001_review_gate import BD001ReviewGateError, bd001_review_gate
     from .builder import DEFAULT_GEANT4_PREFIX, DEFAULT_PYTHON, REPO_ROOT, BuildError, resolve_workload
     from .optimization_registry import DEFAULT_REGISTRY, OptimizationRegistryError, require_entry
     from .parity import parity_gate
@@ -46,6 +49,9 @@ DEFAULT_N_EVENTS = 1000
 DEFAULT_SEED_START = 1001
 DEFAULT_BUILD_ROOT = REPO_ROOT / "benchmarks/builds"
 DEFAULT_GEANT4_VERSION = "v11.2.2"
+DEFAULT_BD001_SOURCE_REPO = Path(
+    os.environ.get("G4GPU_BD001_SOURCE_REPO", "/projects/hep/fs10/shared/nnbar/billy/geant4-fork")
+)
 SAFE_TOKEN = re.compile(r"[^A-Za-z0-9_.-]+")
 WORKLOAD_EVENT_NAMES = {
     "W1": "gamma_100mev",
@@ -114,6 +120,12 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--opt-cmake-flags", default="", help="CMake flags recorded in result rows")
     parser.add_argument("--registry", type=Path, default=DEFAULT_REGISTRY, help="optimization registry YAML path")
     parser.add_argument(
+        "--bd001-source-repo",
+        type=Path,
+        default=DEFAULT_BD001_SOURCE_REPO,
+        help="Geant4 source repo used to review-gate BD-geant4-001 registry rows",
+    )
+    parser.add_argument(
         "--require-registry",
         action="store_true",
         help="fail closed unless --opt-id has a validated registry entry; fill omitted metadata from that row",
@@ -163,6 +175,8 @@ def _apply_registry_defaults(args: argparse.Namespace) -> None:
     if not args.opt_id:
         raise RunError("--require-registry requires --opt-id")
     entry = require_entry(args.opt_id, args.registry)
+    if args.opt_id == "BD-geant4-001":
+        _require_bd001_reviewed_registry(args)
     if args.opt_branch and args.opt_branch != entry.branch:
         raise RunError(
             f"--opt-branch {args.opt_branch!r} conflicts with registry branch {entry.branch!r}"
@@ -182,6 +196,15 @@ def _apply_registry_defaults(args: argparse.Namespace) -> None:
     args.opt_cmake_flags = args.opt_cmake_flags or entry.cmake_flags
     args.claim_level = entry.claim_level or args.claim_level
     args.notes = args.notes or entry.notes
+
+
+def _require_bd001_reviewed_registry(args: argparse.Namespace) -> None:
+    """Require BD001 production registry rows to pass the source-backed review gate."""
+
+    try:
+        bd001_review_gate(args.registry, source_repo=args.bd001_source_repo)
+    except BD001ReviewGateError as exc:
+        raise RunError(f"BD-geant4-001 reviewed-registry gate failed: {exc}") from exc
 
 
 def _collect(args: argparse.Namespace) -> int:
