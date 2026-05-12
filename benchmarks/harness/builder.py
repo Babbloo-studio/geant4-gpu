@@ -40,23 +40,44 @@ class WorkloadSpec:
 
 WORKLOADS: dict[str, WorkloadSpec] = {
     # Canonical Phase-5 publication workloads.  W1--W6 remain the stable
-    # harness IDs; event-name aliases below map to the same build targets.
+    # harness IDs.  W5/W6 are intentionally absent here until true NNBAR
+    # full-event drivers exist; see METHODOLOGY_BLOCKERS below.
     "W1": WorkloadSpec("W1", None, "benchmark_gamma_100mev", "benchmarks/benchmark_gamma_100mev", True),
     "W2": WorkloadSpec("W2", None, "benchmark_muon_10gev", "benchmarks/benchmark_muon_10gev", True),
     "W3": WorkloadSpec("W3", None, "benchmark_nbar_carbon", "benchmarks/benchmark_nbar_carbon", True),
     "W4": WorkloadSpec("W4", None, "benchmark_cosmic_shower", "benchmarks/benchmark_cosmic_shower", True),
-    "W5": WorkloadSpec(
-        "W5", None, "benchmark_optical_scintillator", "benchmarks/benchmark_optical_scintillator", True
+    # Stand-in event drivers remain addressable only by their event names so
+    # they cannot be mistaken for paper-methodology W5/W6 rows.
+    "optical_scintillator": WorkloadSpec(
+        "optical_scintillator",
+        None,
+        "benchmark_optical_scintillator",
+        "benchmarks/benchmark_optical_scintillator",
+        True,
     ),
-    "W6": WorkloadSpec("W6", None, "benchmark_beam_neutron", "benchmarks/benchmark_beam_neutron", True),
+    "beam_neutron": WorkloadSpec(
+        "beam_neutron", None, "benchmark_beam_neutron", "benchmarks/benchmark_beam_neutron", True
+    ),
 }
 ALIASES = {
     "gamma_100mev": "W1",
     "muon_10gev": "W2",
     "nbar_carbon": "W3",
     "cosmic_shower": "W4",
-    "optical_scintillator": "W5",
-    "beam_neutron": "W6",
+}
+METHODOLOGY_BLOCKERS = {
+    "W5": (
+        "W5 is methodology-blocked: docs/specs/paper-methodology.md defines "
+        "W5 as the NNBAR full event (signal), 1000 events, FTFP_BERT. "
+        "This checkout only has the stand-in event driver "
+        "'optical_scintillator', which is not a paper-ready W5 driver."
+    ),
+    "W6": (
+        "W6 is methodology-blocked: docs/specs/paper-methodology.md defines "
+        "W6 as the NNBAR full event (cosmic mu), 500 events, FTFP_BERT. "
+        "This checkout only has the stand-in event driver 'beam_neutron', "
+        "which is not a paper-ready W6 driver."
+    ),
 }
 
 
@@ -148,12 +169,18 @@ def build_optimized(
 
 def resolve_workload(workload: str) -> WorkloadSpec:
     key = str(workload).strip()
+    blocker = METHODOLOGY_BLOCKERS.get(key.upper())
+    if blocker is not None:
+        raise BuildError(blocker)
     canonical = WORKLOADS.get(key) or WORKLOADS.get(ALIASES.get(key.lower(), ""))
     if canonical is not None:
         return canonical
     if key.startswith("benchmark_"):
         return WorkloadSpec(key, None, key, f"benchmarks/{key}", True)
-    raise BuildError(f"unknown benchmark workload {workload!r}; expected W1-W6 or a phase-5 event alias")
+    raise BuildError(
+        f"unknown benchmark workload {workload!r}; expected W1-W4, an explicit phase-5 stand-in "
+        "event name, or benchmark_*; W5/W6 are blocked until true NNBAR full-event drivers exist"
+    )
 
 
 def _build(

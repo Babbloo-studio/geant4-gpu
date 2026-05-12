@@ -93,7 +93,38 @@ def test_dry_run_w1_pl1_h3_prints_sbatch_without_side_effects(tmp_path: Path) ->
     assert not (tmp_path / "repo/benchmarks/raw/BD-geant4-032").exists()
 
 
-def test_w5_w6_reference_dry_run_aliases_are_canonical(tmp_path: Path) -> None:
+def test_w5_w6_reference_dry_run_fail_closed_until_methodology_drivers_exist(tmp_path: Path) -> None:
+    for workload, expected in {
+        "W5": "NNBAR full event (signal)",
+        "W6": "NNBAR full event (cosmic mu)",
+    }.items():
+        output = io.StringIO()
+        err = io.StringIO()
+        with redirect_stdout(output), redirect_stderr(err):
+            rc = run_main(
+                [
+                    "--opt-id",
+                    "vanilla",
+                    "--workload",
+                    workload,
+                    "--physics-list",
+                    "PL1",
+                    "--hw",
+                    "H1",
+                    "--n-seeds",
+                    "1",
+                    "--repo-root",
+                    str(tmp_path / "repo"),
+                    "--generate-reference",
+                ]
+            )
+        assert rc == 2
+        assert "#SBATCH" not in output.getvalue()
+        assert "methodology-blocked" in err.getvalue()
+        assert expected in err.getvalue()
+
+
+def test_stand_in_reference_dry_run_uses_event_names_not_methodology_ids(tmp_path: Path) -> None:
     output = io.StringIO()
     with redirect_stdout(output):
         rc = run_main(
@@ -101,8 +132,8 @@ def test_w5_w6_reference_dry_run_aliases_are_canonical(tmp_path: Path) -> None:
                 "--opt-id",
                 "vanilla",
                 "--workload",
-                "W5",
-                "W6",
+                "optical_scintillator",
+                "beam_neutron",
                 "--physics-list",
                 "PL1",
                 "--hw",
@@ -116,8 +147,10 @@ def test_w5_w6_reference_dry_run_aliases_are_canonical(tmp_path: Path) -> None:
         )
     text = output.getvalue()
     assert rc == 0
-    assert "WORKLOAD_ID=W5" in text
-    assert "WORKLOAD_ID=W6" in text
+    assert "WORKLOAD_ID=optical_scintillator" in text
+    assert "WORKLOAD_ID=beam_neutron" in text
+    assert "WORKLOAD_ID=W5" not in text
+    assert "WORKLOAD_ID=W6" not in text
     assert "benchmark_optical_scintillator" in text
     assert "benchmark_beam_neutron" in text
     assert "COLLECTOR_NOT_IMPLEMENTED" not in text
@@ -168,7 +201,7 @@ def test_reference_submit_dry_run_writes_vanilla_only_script(tmp_path: Path) -> 
                 "--opt-id",
                 "vanilla",
                 "--workload",
-                "W5",
+                "optical_scintillator",
                 "--physics-list",
                 "PL1",
                 "--hw",
@@ -186,6 +219,7 @@ def test_reference_submit_dry_run_writes_vanilla_only_script(tmp_path: Path) -> 
         )
     assert rc == 0
     script = next(script_dir.glob("*.sbatch")).read_text(encoding="utf-8")
+    assert "WORKLOAD_ID=optical_scintillator" in script
     assert "run_reference" in script
     assert "--collect --generate-reference" in script
     assert "run_one optimized" not in script
@@ -272,7 +306,7 @@ def test_collect_writes_result_row(tmp_path: Path) -> None:
 
 def test_reference_collect_writes_manifest(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
-    raw_dir = repo / "benchmarks/reference/W5/PL1"
+    raw_dir = repo / "benchmarks/reference/optical_scintillator/PL1"
     raw_dir.mkdir(parents=True)
     for seed in (11, 22):
         pq.write_table(_raw_table(1_000_000_000, event_name="optical_scintillator"), raw_dir / f"seed_{seed}.parquet")
@@ -283,7 +317,7 @@ def test_reference_collect_writes_manifest(tmp_path: Path) -> None:
                 "--collect",
                 "--generate-reference",
                 "--workload",
-                "W5",
+                "optical_scintillator",
                 "--physics-list",
                 "PL1",
                 "--hw",
@@ -304,9 +338,43 @@ def test_reference_collect_writes_manifest(tmp_path: Path) -> None:
     assert rc == 0
     manifest = repo / "benchmarks/reference/MANIFEST.sha256"
     text = manifest.read_text(encoding="utf-8")
-    assert "W5/PL1/seed_11.parquet" in text
-    assert "W5/PL1/seed_22.parquet" in text
+    assert "optical_scintillator/PL1/seed_11.parquet" in text
+    assert "optical_scintillator/PL1/seed_22.parquet" in text
     assert "REFERENCE_COLLECTED" in output.getvalue()
+
+
+def test_reference_collect_rejects_superseded_w5_w6_directories(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    for workload, event_name in {"W5": "optical_scintillator", "W6": "beam_neutron"}.items():
+        raw_dir = repo / f"benchmarks/reference/{workload}/PL1"
+        raw_dir.mkdir(parents=True)
+        pq.write_table(_raw_table(1_000_000_000, event_name=event_name), raw_dir / "seed_11.parquet")
+        err = io.StringIO()
+        with redirect_stderr(err):
+            rc = run_main(
+                [
+                    "--collect",
+                    "--generate-reference",
+                    "--workload",
+                    workload,
+                    "--physics-list",
+                    "PL1",
+                    "--hw",
+                    "H1",
+                    "--n-events",
+                    "24",
+                    "--seeds",
+                    "11",
+                    "--raw-dir",
+                    str(raw_dir),
+                    "--repo-root",
+                    str(repo),
+                    "--slurm-job-id",
+                    "999",
+                ]
+            )
+        assert rc == 2
+        assert "methodology-blocked" in err.getvalue()
 
 
 def main() -> int:
@@ -314,12 +382,14 @@ def main() -> int:
         tmp = Path(tmp_dir)
         test_module_help_exits_zero()
         test_dry_run_w1_pl1_h3_prints_sbatch_without_side_effects(tmp)
-        test_w5_w6_reference_dry_run_aliases_are_canonical(tmp)
+        test_w5_w6_reference_dry_run_fail_closed_until_methodology_drivers_exist(tmp)
+        test_stand_in_reference_dry_run_uses_event_names_not_methodology_ids(tmp)
         test_submit_dry_run_writes_valid_scripts_but_does_not_call_sbatch(tmp)
         test_reference_submit_dry_run_writes_vanilla_only_script(tmp)
         test_collect_check_and_missing_raw_fail_closed(tmp)
         test_collect_writes_result_row(tmp)
         test_reference_collect_writes_manifest(tmp)
+        test_reference_collect_rejects_superseded_w5_w6_directories(tmp)
     print("benchmark_harness_run: PASS")
     return 0
 

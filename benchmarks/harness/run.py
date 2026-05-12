@@ -50,8 +50,12 @@ WORKLOAD_EVENT_NAMES = {
     "W2": "muon_10gev",
     "W3": "nbar_carbon",
     "W4": "cosmic_shower",
-    "W5": "optical_scintillator",
-    "W6": "beam_neutron",
+    "gamma_100mev": "gamma_100mev",
+    "muon_10gev": "muon_10gev",
+    "nbar_carbon": "nbar_carbon",
+    "cosmic_shower": "cosmic_shower",
+    "optical_scintillator": "optical_scintillator",
+    "beam_neutron": "beam_neutron",
 }
 
 

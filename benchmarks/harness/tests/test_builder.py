@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[3]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from benchmarks.harness.builder import BuildError, build_optimized, build_vanilla  # noqa: E402
+from benchmarks.harness.builder import BuildError, build_optimized, build_vanilla, resolve_workload  # noqa: E402
 
 
 def _fixture_tree(tmp: Path) -> tuple[Path, Path, Path, dict[str, str]]:
@@ -139,6 +139,31 @@ def test_missing_binary_is_fail_closed(tmp_path: Path) -> None:
         raise AssertionError("builder accepted a build with no benchmark binary")
 
 
+def test_w5_w6_are_methodology_blocked_until_true_nnbar_drivers_exist() -> None:
+    for workload, expected in {
+        "W5": "NNBAR full event (signal)",
+        "w6": "NNBAR full event (cosmic mu)",
+    }.items():
+        try:
+            resolve_workload(workload)
+        except BuildError as exc:
+            message = str(exc)
+            assert "methodology-blocked" in message
+            assert expected in message
+            assert "stand-in event driver" in message
+        else:
+            raise AssertionError(f"{workload} resolved before a true NNBAR full-event driver exists")
+
+
+def test_stand_in_events_resolve_only_by_event_name_not_w5_w6() -> None:
+    optical = resolve_workload("optical_scintillator")
+    beam = resolve_workload("beam_neutron")
+    assert optical.workload_id == "optical_scintillator"
+    assert optical.target == "benchmark_optical_scintillator"
+    assert beam.workload_id == "beam_neutron"
+    assert beam.target == "benchmark_beam_neutron"
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp = Path(tmp_dir)
@@ -146,6 +171,8 @@ def main() -> int:
         test_build_optimized_dry_run_writes_plan_only(tmp)
         test_build_log_error_is_fail_closed(tmp)
         test_missing_binary_is_fail_closed(tmp)
+        test_w5_w6_are_methodology_blocked_until_true_nnbar_drivers_exist()
+        test_stand_in_events_resolve_only_by_event_name_not_w5_w6()
     print("benchmark_harness_builder: PASS")
     return 0
 

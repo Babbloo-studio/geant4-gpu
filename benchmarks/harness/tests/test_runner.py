@@ -24,6 +24,7 @@ from benchmarks.harness.runner import (  # noqa: E402
     submit_sbatch,
     write_sbatch,
 )
+from benchmarks.harness.builder import BuildError  # noqa: E402
 
 
 def _spec(tmp: Path) -> RunnerSpec:
@@ -60,15 +61,26 @@ def test_render_sbatch_contains_fail_closed_compute_node_contract(tmp_path: Path
     assert "benchmark_gamma_100mev" in script
 
 
-def test_render_reference_mode_runs_vanilla_only(tmp_path: Path) -> None:
-    script = render_sbatch(replace(_spec(tmp_path), reference_mode=True, workload="W5"))
-    assert "WORKLOAD_ID=W5" in script
+def test_render_reference_mode_runs_vanilla_only_for_stand_in_event(tmp_path: Path) -> None:
+    script = render_sbatch(replace(_spec(tmp_path), reference_mode=True, workload="optical_scintillator"))
+    assert "WORKLOAD_ID=optical_scintillator" in script
     assert "benchmark_optical_scintillator" in script
     assert "run_reference" in script
     assert "seed_${seed}.parquet" in script
     assert "--collect --generate-reference" in script
     assert "run_one optimized" not in script
     assert "missing executable optimized binary" not in script
+
+
+def test_render_methodology_w5_w6_fail_closed(tmp_path: Path) -> None:
+    for workload in ("W5", "W6"):
+        try:
+            render_sbatch(replace(_spec(tmp_path), reference_mode=True, workload=workload))
+        except BuildError as exc:
+            assert "methodology-blocked" in str(exc)
+            assert "NNBAR full event" in str(exc)
+        else:
+            raise AssertionError(f"{workload} rendered despite missing true NNBAR full-event driver")
 
 
 
@@ -200,7 +212,8 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp = Path(tmp_dir)
         test_render_sbatch_contains_fail_closed_compute_node_contract(tmp)
-        test_render_reference_mode_runs_vanilla_only(tmp)
+        test_render_reference_mode_runs_vanilla_only_for_stand_in_event(tmp)
+        test_render_methodology_w5_w6_fail_closed(tmp)
         test_write_sbatch_is_bash_syntax_clean(tmp)
         test_submit_dry_run_does_not_call_sbatch(tmp)
         test_submit_parses_fake_sbatch_job_id(tmp)
