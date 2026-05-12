@@ -156,6 +156,11 @@ add_test(
     ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/validate.py
     ${CMAKE_BINARY_DIR}/benchmarks/validate-self
 )
+add_test(
+  NAME g4gpu_benchmark_harness_schema_parity
+  COMMAND ${G4GPU_BENCHMARK_PYTHON}
+    ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/harness/tests/test_schema_parity.py
+)
 
 set(G4GPU_BENCHMARK_EVENTS
   gamma_100mev
