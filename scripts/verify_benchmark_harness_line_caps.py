@@ -11,6 +11,13 @@ REPORT = ROOT / "docs/reports/benchmark_harness_line_cap_guard_20260512.md"
 CMAKE = ROOT / "CMakeLists.txt"
 SCRIPT = ROOT / "scripts/verify_benchmark_harness_line_caps.py"
 WATCH_ROOTS = [ROOT / "benchmarks/harness"]
+WATCH_GLOBS = (
+    "scripts/verify_bd001*.py",
+    "scripts/verify_benchmark*.py",
+    "docs/reports/bd_geant4_001*.md",
+    "docs/reports/benchmark_*guard*.md",
+)
+WATCH_EXPLICIT = (ROOT / "CMakeLists.txt",)
 SUFFIXES = {".py", ".md", ".yaml", ".yml", ".txt"}
 
 
@@ -19,14 +26,20 @@ def line_count(path: Path) -> int:
 
 
 def iter_watched_files() -> list[Path]:
-    files: list[Path] = []
+    files: set[Path] = set(WATCH_EXPLICIT)
     for root in WATCH_ROOTS:
         for path in sorted(root.rglob("*")):
             if "__pycache__" in path.parts or not path.is_file():
                 continue
             if path.suffix in SUFFIXES:
-                files.append(path)
-    return files
+                files.add(path)
+    for pattern in WATCH_GLOBS:
+        for path in ROOT.glob(pattern):
+            if "__pycache__" in path.parts or not path.is_file():
+                continue
+            if path.suffix in SUFFIXES:
+                files.add(path)
+    return sorted(files)
 
 
 def require(path: Path, marker: str) -> None:
@@ -48,7 +61,14 @@ def main() -> int:
         require(CMAKE, marker)
         require(REPORT, marker)
 
-    for marker in ("7f13adf", "benchmarks/harness/run_helpers.py", "test_run_bd001_registry.py"):
+    for marker in (
+        "7f13adf",
+        "benchmarks/harness/run_helpers.py",
+        "test_run_bd001_registry.py",
+        "CMakeLists.txt",
+        "scripts/verify_bd001_smoke_readiness.py",
+        "docs/reports/bd_geant4_001_smoke_readiness_20260512.md",
+    ):
         require(REPORT, marker)
 
     print("BENCHMARK_HARNESS_LINE_CAPS_OK")
