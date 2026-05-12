@@ -31,6 +31,11 @@ EXPECTED = {
         "g4gpu_em_ctest_execution_boundary",
         "CTest command boundary",
     ),
+    "em_gamma_claim_boundary_20260512.md": Coverage(
+        "scripts/verify_em_gamma_claim_boundary.py",
+        "g4gpu_em_claim_boundary",
+        "premature claim boundary",
+    ),
     "em_gamma_current_publication_audit_20260512.md": Coverage(
         "scripts/verify_em_gamma_publication_audit.py",
         "g4gpu_em_publication_audit",
