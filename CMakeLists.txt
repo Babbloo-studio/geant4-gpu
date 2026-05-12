@@ -39,6 +39,17 @@ if(DEFINED Geant4_USE_FILE)
   include(${Geant4_USE_FILE})
 endif()
 find_package(CUDAToolkit REQUIRED)
+if(CUDAToolkit_BIN_DIR)
+  get_filename_component(G4GPU_CUDA_TOOLKIT_ROOT "${CUDAToolkit_BIN_DIR}/.." REALPATH)
+else()
+  get_filename_component(G4GPU_CUDA_NVCC_DIR "${CMAKE_CUDA_COMPILER}" DIRECTORY)
+  get_filename_component(G4GPU_CUDA_TOOLKIT_ROOT "${G4GPU_CUDA_NVCC_DIR}/.." REALPATH)
+endif()
+get_filename_component(G4GPU_CUDA_INCLUDE_DIR "${G4GPU_CUDA_TOOLKIT_ROOT}/include" REALPATH)
+set(G4GPU_CUDA_TARGET_LIB_DIR "${G4GPU_CUDA_TOOLKIT_ROOT}/targets/x86_64-linux/lib")
+if(EXISTS "${G4GPU_CUDA_TARGET_LIB_DIR}/libcudart.so")
+  list(APPEND CMAKE_BUILD_RPATH "${G4GPU_CUDA_TARGET_LIB_DIR}")
+endif()
 
 if(G4GPU_WITH_OPTICAL AND NOT G4GPU_WITH_OPTICKS)
   message(STATUS "G4GPU_WITH_OPTICAL is a legacy alias; enabling G4GPU_WITH_OPTICKS")
@@ -117,9 +128,20 @@ target_include_directories(G4GPU
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
     ${Geant4_INCLUDE_DIRS}
+    ${CUDAToolkit_INCLUDE_DIRS}
+    ${G4GPU_CUDA_INCLUDE_DIR}
 )
 
 target_compile_definitions(G4GPU PUBLIC G4GPU_HAVE_GEANT4=1)
+if(EXISTS "${G4GPU_CUDA_INCLUDE_DIR}/cuda_runtime_api.h")
+  target_compile_options(G4GPU PUBLIC
+    $<$<COMPILE_LANGUAGE:CXX>:-I${G4GPU_CUDA_INCLUDE_DIR}>
+  )
+endif()
+if(EXISTS "${G4GPU_CUDA_TARGET_LIB_DIR}/libcudart.so")
+  target_link_directories(G4GPU PRIVATE "${G4GPU_CUDA_TARGET_LIB_DIR}")
+  target_link_options(G4GPU PRIVATE "-L${G4GPU_CUDA_TARGET_LIB_DIR}")
+endif()
 target_link_libraries(G4GPU PUBLIC ${Geant4_LIBRARIES} CUDA::cudart)
 if(G4GPU_WITH_MUON)
   target_compile_definitions(G4GPU PUBLIC G4GPU_WITH_MUON=1)

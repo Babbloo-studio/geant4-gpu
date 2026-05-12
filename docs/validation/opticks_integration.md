@@ -20,6 +20,21 @@ The manual OptiX SDK blocker from the NNBAR task plan therefore still applies.
 The adapter added here builds and tests the explicit disabled/fallback path when
 `G4GPU_WITH_OPTICKS=OFF`.
 
+## Fallback-path build evidence (2026-05-12)
+
+The CMake scaffold now propagates CUDA runtime include and RPATH information to
+C++ consumers so fallback tests resolve `cudaStream_t` and `libcudart.so`
+consistently in a clean LUNARC shell. Verified commands:
+
+- `cmake -S . -B build_phase4_off -DG4GPU_WITH_OPTICKS=OFF -DG4GPU_WITH_RTX=OFF`
+- `cmake --build build_phase4_off -j2`
+- `ctest --test-dir build_phase4_off --output-on-failure -R g4gpu_opticks_backend`
+
+The focused fallback test passed. A full local `ctest` on the holder shell still
+has four driver-dependent CUDA tests fail with `CUDA driver version is
+insufficient for CUDA runtime version`; those are not Phase-4 Opticks fallback
+tests and require the usual GPU-node validation path.
+
 ## Adapter contract
 
 `g4gpu::OpticksOpticalBackend` is an off-by-default bridge boundary. It accepts
@@ -44,5 +59,4 @@ optical transport can be promoted beyond scaffold status:
    agreed efficiency tolerance before any performance benchmark is interpreted.
 5. Explicit fallback accounting for unsupported geometry/material cases.
 
-No SLURM jobs, GPU runtime tests, or benchmark claims were run in this compact
-iteration.
+No SLURM jobs or benchmark claims were run in this compact iteration.
