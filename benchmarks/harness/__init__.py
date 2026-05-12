@@ -3,6 +3,7 @@
 from .schema import BenchmarkResultRow, RESULT_SCHEMA
 from .parity import ParityResult, parity_gate
 from .builder import BuildError, build_optimized, build_vanilla
+from .hardware import HardwareFingerprint, collect_local_fingerprint
 
 __all__ = [
     "BenchmarkResultRow",
@@ -12,4 +13,6 @@ __all__ = [
     "BuildError",
     "build_optimized",
     "build_vanilla",
+    "HardwareFingerprint",
+    "collect_local_fingerprint",
 ]
