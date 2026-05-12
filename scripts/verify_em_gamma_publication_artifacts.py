@@ -86,6 +86,7 @@ def main() -> int:
         bundle,
         patch,
         PUB / f"BUNDLE_VERIFY_{head}.txt",
+        PUB / f"MIRROR_VERIFY_{head}.txt",
         PUB / f"check_em_gamma_current_{head}.sh",
         PUB / f"check_em_gamma_current_{head}.latest.txt",
     ]
@@ -99,6 +100,11 @@ def main() -> int:
         raise SystemExit(f"current HEAD {full_head} not listed by {bundle}")
     require(patch, full_head)
     require(patch, f"Subject: [PATCH] {subject}")
+    mirror_verify = PUB / f"MIRROR_VERIFY_{head}.txt"
+    require(mirror_verify, "fork refs/heads/lane/g4gpu-em-gamma")
+    require(mirror_verify, f"{full_head}\trefs/heads/lane/g4gpu-em-gamma")
+    require(mirror_verify, "local HEAD")
+    require(mirror_verify, full_head)
     require(PUB / f"check_em_gamma_current_{head}.latest.txt", ok_marker)
     require(PUB / f"check_em_gamma_current_{head}.latest.txt", "100% tests passed")
     require(PUB / f"check_em_gamma_current_{head}.sh", "ctest --test-dir build")
