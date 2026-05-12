@@ -278,6 +278,11 @@ if(G4GPU_WITH_EM)
       COMMAND ${Python3_EXECUTABLE}
               ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_em_gamma_option_boundary.py
     )
+    add_test(
+      NAME g4gpu_em_option_off_config
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_em_gamma_option_off_config.py
+    )
   endif()
 endif()
 
