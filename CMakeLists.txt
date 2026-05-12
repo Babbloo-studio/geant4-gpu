@@ -221,6 +221,11 @@ add_test(
   COMMAND ${G4GPU_BENCHMARK_PYTHON}
     ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_benchmark_harness_line_caps.py
 )
+add_test(
+  NAME g4gpu_benchmark_generated_artifact_ignores
+  COMMAND ${G4GPU_BENCHMARK_PYTHON}
+    ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_benchmark_generated_artifact_ignores.py
+)
 
 set(G4GPU_BENCHMARK_EVENTS
   gamma_100mev
