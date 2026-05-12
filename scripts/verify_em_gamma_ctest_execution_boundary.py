@@ -40,6 +40,7 @@ EXPECTED_SCRIPT_TESTS = {
     "g4gpu_em_status_code_preflight": "scripts/verify_em_gamma_status_code_preflight.py",
     "g4gpu_em_preflight_contract_index": "scripts/verify_em_gamma_preflight_contract_index.py",
     "g4gpu_em_preflight_chain_audit": "scripts/verify_em_gamma_preflight_chain_audit.py",
+    "g4gpu_em_option_boundary": "scripts/verify_em_gamma_option_boundary.py",
 }
 
 ALLOWED_TESTS = set(EXPECTED_SCRIPT_TESTS) | {"g4gpu_em_klein_nishina"}

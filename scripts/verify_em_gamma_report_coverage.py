@@ -71,6 +71,11 @@ EXPECTED = {
         "g4gpu_em_pair_contract",
         "per-process contract",
     ),
+    "em_gamma_option_boundary_20260512.md": Coverage(
+        "scripts/verify_em_gamma_option_boundary.py",
+        "g4gpu_em_option_boundary",
+        "CMake option boundary",
+    ),
     "em_gamma_photoelectric_contract_20260512.md": Coverage(
         "scripts/verify_em_gamma_photoelectric_contract.py",
         "g4gpu_em_photoelectric_contract",

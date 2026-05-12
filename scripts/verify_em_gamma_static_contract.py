@@ -128,6 +128,8 @@ def main() -> int:
         "scripts/verify_em_gamma_preflight_contract_index.py",
         "NAME g4gpu_em_preflight_chain_audit",
         "scripts/verify_em_gamma_preflight_chain_audit.py",
+        "NAME g4gpu_em_option_boundary",
+        "scripts/verify_em_gamma_option_boundary.py",
     ):
         require(CMAKE, marker)
 
