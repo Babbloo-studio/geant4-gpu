@@ -231,6 +231,11 @@ add_test(
   COMMAND ${G4GPU_BENCHMARK_PYTHON}
     ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_bd001_smoke_readiness.py
 )
+add_test(
+  NAME g4gpu_bd001_result_readiness
+  COMMAND ${G4GPU_BENCHMARK_PYTHON}
+    ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_bd001_result_readiness.py
+)
 
 set(G4GPU_BENCHMARK_EVENTS
   gamma_100mev
