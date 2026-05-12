@@ -198,6 +198,11 @@ if(G4GPU_WITH_EM)
       COMMAND ${Python3_EXECUTABLE}
               ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_em_gamma_table_owner_preflight.py
     )
+    add_test(
+      NAME g4gpu_em_secondary_buffer_preflight
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_em_gamma_secondary_buffer_preflight.py
+    )
   endif()
 endif()
 
