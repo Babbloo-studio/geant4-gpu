@@ -56,6 +56,11 @@ EXPECTED = {
         "g4gpu_em_static_contract",
         "shared original-scaffold static contract",
     ),
+    "em_gamma_lane_objective_audit_20260512.md": Coverage(
+        "scripts/verify_em_gamma_lane_objective_audit.py",
+        "g4gpu_em_lane_objective_audit",
+        "lane prompt-to-artifact objective audit",
+    ),
     "em_gamma_pair_contract_20260512.md": Coverage(
         "scripts/verify_em_gamma_pair_contract.py",
         "g4gpu_em_pair_contract",
