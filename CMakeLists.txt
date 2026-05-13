@@ -241,6 +241,11 @@ add_test(
   COMMAND ${G4GPU_BENCHMARK_PYTHON}
     ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_bd001_optimized_prefix_preflight.py
 )
+add_test(
+  NAME g4gpu_bd001_optimized_prefix_build_next
+  COMMAND ${G4GPU_BENCHMARK_PYTHON}
+    ${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_bd001_optimized_prefix_build_next.py
+)
 
 set(G4GPU_BENCHMARK_EVENTS
   gamma_100mev
